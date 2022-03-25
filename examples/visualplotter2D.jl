@@ -23,9 +23,9 @@ saveCSVofcurves  = false
 
 # this saves to a subfolder named "figures and data" of the folder containing this script
 savefolder       = joinpath(@__DIR__,"figures and data")
-sixplotname      = joinpath(@__DIR__, savefolder, "fullfig.pdf")
-toprowplotname   = joinpath(@__DIR__, savefolder, "toprow.pdf")
-datacsvname      = joinpath(@__DIR__, savefolder, "curves_for_bottom_row.csv")
+sixplotname      = joinpath(savefolder, "fullfig.pdf")
+toprowplotname   = joinpath(savefolder, "toprow.pdf")
+datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 outputformat     = ".pdf"
 
 ############### plotting code 
