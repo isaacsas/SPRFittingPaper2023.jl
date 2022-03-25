@@ -89,7 +89,7 @@ bioparams = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconce
 
 # you can pass non-default numerical parameters as keywords to SimParams
 # an example would be SimParams(bioparams.antigenconcen; dt=1.0, N=1000)
-# to change dt and N from the defaults, see definition of SimParams above.
+# to change dt and N from the defaults, see definition of SimParams.
 numparams = SimParams(bioparams.antigenconcen)
 
 # run simulations and plot/save data
