@@ -15,10 +15,10 @@ antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]
 antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) with N=250 by default
 
 # saving and plotting controls
-plotsixpanelplot = false
+plotsixpanelplot = true
 savesixpanelplot = false
 plottoprowplot   = true
-savetoprowplot   = true
+savetoprowplot   = false
 saveCSVofcurves  = false
 
 # this saves to a subfolder named "figures and data" of the folder containing this script
