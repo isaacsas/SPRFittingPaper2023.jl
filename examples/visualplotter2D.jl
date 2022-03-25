@@ -22,7 +22,7 @@ savetoprowplot   = true
 saveCSVofcurves  = false
 
 # this saves to a subfolder named "figures and data" of the folder containing this script
-savefolder       = joinpath(@__DIR__,"figures and data")
+savefolder       = joinpath(@__DIR__, "figures and data")
 sixplotname      = joinpath(savefolder, "fullfig.pdf")
 toprowplotname   = joinpath(savefolder, "toprow.pdf")
 datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
