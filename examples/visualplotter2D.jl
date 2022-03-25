@@ -26,7 +26,6 @@ savefolder       = joinpath(@__DIR__,"figures and data")
 sixplotname      = joinpath(savefolder, "fullfig.pdf")
 toprowplotname   = joinpath(savefolder, "toprow.pdf")
 datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
-outputformat     = ".pdf"
 
 ############### plotting code 
 function circleshape(h,k,r)
