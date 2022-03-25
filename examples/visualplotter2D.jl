@@ -15,18 +15,18 @@ antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]
 antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) with N=250 by default
 
 # saving and plotting controls
-plotsixpanelplot = true
-savesixpanelplot = true
+plotsixpanelplot = false
+savesixpanelplot = false
 plottoprowplot   = true
 savetoprowplot   = true
-saveCSVofcurves  = true
+saveCSVofcurves  = false
 
 # this saves to a subfolder named "figures and data" of the folder containing this script
 savefolder       = joinpath(@__DIR__,"figures and data")
 sixplotname      = joinpath(@__DIR__, savefolder, "fullfig.pdf")
 toprowplotname   = joinpath(@__DIR__, savefolder, "toprow.pdf")
 datacsvname      = joinpath(@__DIR__, savefolder, "curves_for_bottom_row.csv")
-outputformat     = ".png"
+outputformat     = ".pdf"
 
 ############### plotting code 
 function circleshape(h,k,r)
