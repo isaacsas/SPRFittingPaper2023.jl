@@ -119,13 +119,13 @@ if saveCSVofcurves
     data[:,1] .= Xv[1]
     idx = 2
     paramnames = ["times"]
+    kon = bioparams.kon
     for (i,reach) in pairs(reaches)
-        kon = bioparams.kon
         for (j,abconcen) in pairs(antibodyconcens)
             data[:,idx] .= Yv[i][j]
             idx += 1
-            konact = kon * abconcen
-            konstr = @sprintf "reach=%2.0f, kon=%2.5f" reach konact
+            konpertime = kon * abconcen
+            konstr = @sprintf "reach=%2.0f, kon_per_time=%2.5f" reach konpertime
             push!(paramnames, konstr)
         end
     end
