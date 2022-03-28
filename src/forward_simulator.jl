@@ -15,46 +15,52 @@ function run_spr_sim(bioparams, numparams)
 
     BindCount = zeros(Int,length(tsave))
 
-    for nr=1:nsims          
-        reachsq = reach*reach
-        rpair = CartesianIndex{2}[]
-        Acnt  = zeros(Int,N)
-        @inbounds for i = 1:N
-            @inbounds for j = (i+1):N
-                sqd = sqdist_periodic(view(initlocs,:,i), view(initlocs,:,j), L)
-                if sqd <= reachsq
-                    push!(rpair, CartesianIndex(i,j))
-                    Acnt[i] += 1
-                    Acnt[j] += 1
-                end
+    reachsq = reach*reach
+    rpair = CartesianIndex{2}[]
+    Acnt  = zeros(Int,N)
+    @inbounds for i = 1:N
+        @inbounds for j = (i+1):N
+            sqd = sqdist_periodic(view(initlocs,:,i), view(initlocs,:,j), L)
+            if sqd <= reachsq
+                push!(rpair, CartesianIndex(i,j))
+                Acnt[i] += 1
+                Acnt[j] += 1
             end
         end
-        # Create a flipped index version to account for the second ordering of pairs. This will allow us to assume that the first index is 
-        # always an A molecule and the second is always a B molecule
-        flip(r) = CartesianIndex(r[2],r[1])
+    end
 
-        # append the flipped indices, distances, and rates
-        append!(rpair, (flip(i) for i in rpair))
-        numPairs     = length(rpair)
-        halfnumPairs = numPairs ÷ 2
+    # now we create a map from a molecule to all possible neighbours
+    nhbrs = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
+    rxIds = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
 
-        # now we create a map from a molecule to all possible neighbours
-        nhbrs = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
-        rxIds = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
+    # Create a flipped index version to account for the second ordering of pairs. This will allow us to assume that the first index is 
+    # always an A molecule and the second is always a B molecule
+    flip(r) = CartesianIndex(r[2],r[1])
 
-        next  = ones(Int,N)
-        ii    = 1
-        @inbounds for i=1:numPairs
-            ridx             = rpair[i][1]
-            idx              = next[ridx]
-            nhbrs[ridx][idx] = rpair[i][2]
-            rxIds[ridx][idx] = ii
-            next[ridx]       = idx+1
-            
-            ii = (ii == halfnumPairs) ? 1 : (ii + 1)
-        end
+    # append the flipped indices, distances, and rates
+    append!(rpair, (flip(i) for i in rpair))
+    numPairs     = length(rpair)
+    halfnumPairs = numPairs ÷ 2
 
-        # Now we can run the simulation
+    next  = ones(Int,N)
+    ii    = 1
+    @inbounds for i=1:numPairs
+        ridx             = rpair[i][1]
+        idx              = next[ridx]
+        nhbrs[ridx][idx] = rpair[i][2]
+        rxIds[ridx][idx] = ii
+        next[ridx]       = idx+1
+        
+        ii = (ii == halfnumPairs) ? 1 : (ii + 1)
+    end
+
+    # preallocate arrays for current state information
+    states      = ones(Int,N,1) # stores the current state of each moleule
+    CopyNumbers = zeros(Int,3,length(tsave))
+    tvec        = zeros(2*N + numPairs)
+
+     # Now we can run the simulation
+    for nr=1:nsims                
 
         #Initial time
         tc = 0.0
@@ -63,7 +69,7 @@ function run_spr_sim(bioparams, numparams)
         A = N
         B = 0
         C = 0
-        states = ones(Int,N,1) # stores the current state of each moleule
+        states .= 1
 
         # mean times for each reactions
         τkonb  = 1 / konb
@@ -72,7 +78,7 @@ function run_spr_sim(bioparams, numparams)
         τkc   = 1 / kc
         
         # Saving array
-        CopyNumbers = zeros(Int,3,length(tsave))
+        CopyNumbers .= 0
         CopyNumbers[1,1] = A
         CopyNumbers[2,1] = B
         CopyNumbers[3,1] = C
@@ -80,8 +86,10 @@ function run_spr_sim(bioparams, numparams)
         tp               = tsave[sidx]
 
         # Initial reactions times
-        tvec = zeros(2*N + numPairs)
-        foreach(i -> tvec[i] = τkon*randexp(), 1:N)
+        tvec .= 0.0
+        for i in 1:N
+            tvec[i] = τkon*randexp()
+        end
         tvec[(N+1):end] .= Inf
 
         # supposedly this is a faster min heap for storing floats
