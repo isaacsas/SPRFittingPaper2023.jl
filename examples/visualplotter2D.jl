@@ -99,6 +99,7 @@ for (i,reach) in pairs(reaches)
     p1,p2,X,Y = makeplots(bioparams, numparams, reaches[i], antibodyconcens)
     push!(p1v,p1); push!(p2v,p2); push!(Xv,X); push!(Yv,Y)
 end
+
 # create the output directory if it doesn't exist
 if savesixpanelplot || saveCSVofcurves || savetoprowplot
     mkpath(savefolder)
@@ -121,10 +122,10 @@ if saveCSVofcurves
     for (i,reach) in pairs(reaches)
         kon = bioparams.kon
         for (j,abconcen) in pairs(antibodyconcens)
-            data[:,idx] = Yv[i][j]
+            data[:,idx] .= Yv[i][j]
             idx += 1
-            kon *= abconcen
-            konstr = @sprintf "reach=%2.0f, kon=%2.5f" reach kon
+            konact = kon * abconcen
+            konstr = @sprintf "reach=%2.0f, kon=%2.5f" reach konact
             push!(paramnames, konstr)
         end
     end
