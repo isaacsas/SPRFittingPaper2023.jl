@@ -5,15 +5,11 @@
     min(dx, L - dx)^2 + min(dy, L - dy)^2 
 end
 
-function run_spr_sim(bioparams, numparams)
-    @unpack kon,koff,konb,reach,CP,antibodyconcen = bioparams
-    @unpack nsims,N,ts_1,tstop,dt,L,initlocs = numparams
-
-    kon  *= antibodyconcen   # convert to per time units
-    kc    = 2*koff           # C --> A+B (per time)
-    tsave = collect(range(0.0,tstop,step=dt))
-
-    BindCount = zeros(Int,length(tsave))
+# for each molecule calculate neighbors within reach
+# also setup the reaction index labelling 
+function setup_spr_sim(bioparams, numparams)
+    @unpack reach = bioparams
+    @unpack N,L,initlocs = numparams
 
     reachsq = reach*reach
     rpair = CartesianIndex{2}[]
@@ -54,13 +50,32 @@ function run_spr_sim(bioparams, numparams)
         ii = (ii == halfnumPairs) ? 1 : (ii + 1)
     end
 
+    nhbrs,rxIds,rpair,numPairs,halfnumPairs
+end
+
+
+function run_spr_sim(bioparams, numparams)
+    @unpack kon,koff,konb,reach,CP,antibodyconcen = bioparams
+    @unpack nsims,N,ts_1,tstop,dt,L,initlocs = numparams
+
+    # simulation specific parameters
+    kon  *= antibodyconcen   # convert to per time units
+    kc    = 2*koff           # C --> A+B (per time)
+
+    # output 
+    tsave = collect(range(0.0,tstop,step=dt))
+    BindCount = zeros(Int,length(tsave))
+
+    # connectivity info
+    nhbrs,rxIds,rpair,numPairs,halfnumPairs = setup_spr_sim(bioparams, numparams)
+
     # preallocate arrays for current state information
-    states      = ones(Int,N,1) # stores the current state of each moleule
+    states      = ones(Int,N,1)              # stores the current state of each moleule
     CopyNumbers = zeros(Int,3,length(tsave))
     tvec        = zeros(2*N + numPairs)
 
      # Now we can run the simulation
-    for nr=1:nsims                
+    @inbounds for nr in 1:nsims                
 
         #Initial time
         tc = 0.0
@@ -78,7 +93,7 @@ function run_spr_sim(bioparams, numparams)
         τkc   = 1 / kc
         
         # Saving array
-        CopyNumbers .= 0
+        CopyNumbers     .= 0
         CopyNumbers[1,1] = A
         CopyNumbers[2,1] = B
         CopyNumbers[3,1] = C
@@ -96,11 +111,6 @@ function run_spr_sim(bioparams, numparams)
         times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         turnoff = false
         twoN = 2*N
-
-        countAB = 0
-        countBA = 0
-        countABToC = 0
-        countCToAB = 0
 
         @inbounds while tc <= tstop
             if tc >= ts_1 && turnoff == false
