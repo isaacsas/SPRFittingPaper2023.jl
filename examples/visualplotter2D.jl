@@ -33,15 +33,15 @@ function circleshape(h,k,r)
     h .+ r*sin.(theta), k.+ r*cos.(theta)
 end
 
-function makeplots(bioparams, numparams, reach, antibodyconcens)
-    @unpack initlocs,L,N,tstop = numparams
-    bioparams.reach = reach
+function makeplots(biopars, numpars, reach, antibodyconcens)
+    @unpack initlocs,L,N,tstop = numpars
+    biopars.reach = reach
 
     SD = []    
     for (i,antibodyconcen) in enumerate(antibodyconcens)
         println("Running reach = $reach, [antibody] = $antibodyconcen ($i/$(length(antibodyconcens)))")
-        bioparams.antibodyconcen = antibodyconcen
-        bindcnt = run_spr_sim(bioparams, numparams)
+        biopars.antibodyconcen = antibodyconcen
+        bindcnt = run_spr_sim(biopars, numpars)
         push!(SD, bindcnt)
     end
 
@@ -85,18 +85,18 @@ end
 ########### ACTUAL SCRIPT TO RUN SIMS AND MAKE FIGURES
 
 # this stores the biological parameters and is passed around in the code
-bioparams = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=antibodyconcens[1], antigenconcen)
+biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=antibodyconcens[1], antigenconcen)
 
 # you can pass non-default numerical parameters as keywords to SimParams
-# an example would be SimParams(bioparams.antigenconcen; dt=1.0, N=1000)
+# an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
 # to change dt and N from the defaults, see definition of SimParams.
-numparams = SimParams(bioparams.antigenconcen)
+numpars = SimParams(biopars.antigenconcen; resample_initlocs=false)
 
 # run simulations and plot/save data
 p1v = []; p2v = []; Xv = []; Yv = [];
 idx = 1
 for (i,reach) in pairs(reaches)
-    p1,p2,X,Y = makeplots(bioparams, numparams, reaches[i], antibodyconcens)
+    p1,p2,X,Y = makeplots(biopars, numpars, reaches[i], antibodyconcens)
     push!(p1v,p1); push!(p2v,p2); push!(Xv,X); push!(Yv,Y)
 end
 
@@ -119,7 +119,7 @@ if saveCSVofcurves
     data[:,1] .= Xv[1]
     idx = 2
     paramnames = ["times"]
-    kon = bioparams.kon
+    kon = biopars.kon
     for (i,reach) in pairs(reaches)
         for (j,abconcen) in pairs(antibodyconcens)
             data[:,idx] .= Yv[i][j]

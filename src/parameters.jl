@@ -33,6 +33,8 @@ mutable struct SimParams{T<:Number,U,V<:AbstractArray{T}}
     L::T 
     """Initial Particle Positions"""
     initlocs::V
+    """Resample initlocs every simulation"""
+    resample_initlocs::Bool
     """Number of simulations in runsim (to control sampling error)"""
     nsims::Int
 end
@@ -46,11 +48,12 @@ function SimParams(antigenconcen;
                    t=nothing, 
                    L=nothing, 
                    initlocs=nothing, 
+                   resample_initlocs=true,
                    nsims=1000)
     tv  = isnothing(t) ? range(1.0, tstop+1, step=1.0) : t    
     Lv  = isnothing(L) ? sqrt(N / (antigenconcen)) : L
     initlocsv = isnothing(initlocs) ? (Lv .* rand(2,N) .- Lv/2) : initlocs    
-    SimParams(N,tstop,ts_1,dt,tv,Lv,initlocsv,nsims)
+    SimParams(N,tstop,ts_1,dt,tv,Lv,initlocsv,resample_initlocs,nsims)
 end
 
 function SimParams(biopars::BioPhysParams; kwargs...)

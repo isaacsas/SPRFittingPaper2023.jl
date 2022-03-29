@@ -5,15 +5,44 @@
     min(dx, L - dx)^2 + min(dy, L - dy)^2 
 end
 
+# stores per-simulation specific information
+struct NhbrParams
+   nhbrs::Vector{Vector{Int}} 
+   rxids::Vector{Vector{Int}}
+   rpair::Vector{CartesianIndex{2}}
+   initlocs::Matrix{Float64}
+   Acnt::Vector{Int}
+   next::Vector{Int}
+end
+
+function NhbrParams(; N=0, initlocs=nothing)
+    nhbrs = [Vector{Int}() for _ in 1:N]
+    rxids = [Vector{Int}() for _ in 1:N]
+    rpair = Vector{CartesianIndex{2}}()
+    Acnt  = zeros(Int, N)
+    next  = ones(Int, N)
+    initlocsmat = (initlocs===nothing) ? zeros(2,N) : initlocs
+    NhbrParams(nhbrs, rxids, rpair, initlocsmat, Acnt, next)
+end
+
+flip(r) = CartesianIndex(r[2],r[1])
+
+
 # for each molecule calculate neighbors within reach
 # also setup the reaction index labelling 
-function setup_spr_sim(bioparams, numparams)
-    @unpack reach = bioparams
-    @unpack N,L,initlocs = numparams
+function setup_spr_sim!(nhbrpars, biopars, numpars)
+    @unpack reach = biopars
+    @unpack N,L,resample_initlocs = numpars
+    @unpack nhbrs,rxids,rpair,Acnt,next,initlocs = nhbrpars
+
+    if resample_initlocs
+        rand!(initlocs)
+        initlocs .*= L    
+    end
 
     reachsq = reach*reach
-    rpair = CartesianIndex{2}[]
-    Acnt  = zeros(Int,N)
+    Acnt   .= 0
+    empty!(rpair)
     @inbounds for i = 1:N
         @inbounds for j = (i+1):N
             sqd = sqdist_periodic(view(initlocs,:,i), view(initlocs,:,j), L)
@@ -26,91 +55,101 @@ function setup_spr_sim(bioparams, numparams)
     end
 
     # now we create a map from a molecule to all possible neighbours
-    nhbrs = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
-    rxIds = [Vector{Int}(undef,Acnt[i]) for i in 1:N]
+    for i in 1:N
+        resize!(nhbrs[i], Acnt[i])
+        resize!(rxids[i], Acnt[i])
+    end
 
-    # Create a flipped index version to account for the second ordering of pairs. This will allow us to assume that the first index is 
-    # always an A molecule and the second is always a B molecule
-    flip(r) = CartesianIndex(r[2],r[1])
-
-    # append the flipped indices, distances, and rates
+    # Create a flipped index version to account for the second ordering of pairs. 
+    # This will allow us to assume that the first index is 
+    # always an A molecule and the second is always a B molecule.
     append!(rpair, (flip(i) for i in rpair))
-    numPairs     = length(rpair)
-    halfnumPairs = numPairs ÷ 2
+    numpairs     = length(rpair)
+    halfnumpairs = numpairs ÷ 2
 
     next  = ones(Int,N)
     ii    = 1
-    @inbounds for i=1:numPairs
+    @inbounds for i=1:numpairs
         ridx             = rpair[i][1]
         idx              = next[ridx]
         nhbrs[ridx][idx] = rpair[i][2]
-        rxIds[ridx][idx] = ii
+        rxids[ridx][idx] = ii
         next[ridx]       = idx+1
         
-        ii = (ii == halfnumPairs) ? 1 : (ii + 1)
+        ii = (ii == halfnumpairs) ? 1 : (ii + 1)
     end
 
-    nhbrs,rxIds,rpair,numPairs,halfnumPairs
+    nhbrpars
 end
 
 
-function run_spr_sim(bioparams, numparams)
-    @unpack kon,koff,konb,reach,CP,antibodyconcen = bioparams
-    @unpack nsims,N,ts_1,tstop,dt,L,initlocs = numparams
+function run_spr_sim(biopars, numpars)
+    @unpack kon,koff,konb,reach,CP,antibodyconcen = biopars
+    @unpack nsims,N,ts_1,tstop,dt,L,resample_initlocs = numpars
+    
+    # don't overwrite the user-provided initlocs
+    initlocs = copy(numpars.initlocs)
 
     # simulation specific parameters
     kon  *= antibodyconcen   # convert to per time units
     kc    = 2*koff           # C --> A+B (per time)
+    twoN  = 2*N
 
     # output 
     tsave = collect(range(0.0,tstop,step=dt))
-    BindCount = zeros(Int,length(tsave))
+    bindcount = zeros(Int,length(tsave))
 
-    # connectivity info
-    nhbrs,rxIds,rpair,numPairs,halfnumPairs = setup_spr_sim(bioparams, numparams)
+    # setup connectivity info
+    nhbrpars = setup_spr_sim!(NhbrParams(; N, initlocs), biopars, numpars)
+    @unpack rpair,nhbrs,rxids = nhbrpars
+    numpairs     = length(rpair)
+    halfnumpairs = numpairs ÷ 2
 
     # preallocate arrays for current state information
     states      = ones(Int,N,1)              # stores the current state of each moleule
-    CopyNumbers = zeros(Int,3,length(tsave))
-    tvec        = zeros(2*N + numPairs)
+    copynumbers = zeros(Int,3,length(tsave))
+    times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(zeros(2*N + numpairs))   
 
      # Now we can run the simulation
-    @inbounds for nr in 1:nsims                
+    @inbounds for _ in 1:nsims     
+        
+        # reset initial positions and nhbrs since connectivity changes        
+        if resample_initlocs
+            setup_spr_sim!(nhbrpars, biopars, numpars)
+            numpairs = length(rpair)
+            halfnumpairs = numpairs ÷ 2
+        end
 
         #Initial time
         tc = 0.0
 
         # Initial particle numbers: All initally time A
-        A = N
-        B = 0
-        C = 0
+        A = N; B = 0; C = 0
         states .= 1
 
         # mean times for each reactions
-        τkonb  = 1 / konb
+        τkonb = 1 / konb
         τkoff = 1 / koff
         τkon  = 1 / kon
         τkc   = 1 / kc
         
         # Saving array
-        CopyNumbers     .= 0
-        CopyNumbers[1,1] = A
-        CopyNumbers[2,1] = B
-        CopyNumbers[3,1] = C
+        copynumbers     .= 0
+        copynumbers[1,1] = A
+        copynumbers[2,1] = B
+        copynumbers[3,1] = C
         sidx             = 2
         tp               = tsave[sidx]
 
         # Initial reactions times
-        tvec .= 0.0
         for i in 1:N
-            tvec[i] = τkon*randexp()
+            update!(times, i, τkon*randexp())
         end
-        tvec[(N+1):end] .= Inf
-
-        # supposedly this is a faster min heap for storing floats
-        times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
+        for i in (N+1):length(times)
+            update!(times, i, Inf)
+        end
         turnoff = false
-        twoN = 2*N
+
 
         @inbounds while tc <= tstop
             if tc >= ts_1 && turnoff == false
@@ -128,9 +167,9 @@ function run_spr_sim(bioparams, numparams)
             tc = tnext
 
             @inbounds while (tc>tp) && (tp <= tstop)
-                CopyNumbers[1,sidx] = A
-                CopyNumbers[2,sidx] = B
-                CopyNumbers[3,sidx] = C
+                copynumbers[1,sidx] = A
+                copynumbers[2,sidx] = B
+                copynumbers[3,sidx] = C
                 tp   += dt
                 sidx += 1
             end
@@ -153,7 +192,7 @@ function run_spr_sim(bioparams, numparams)
                     
                     # Now we check to see if any neighbours can or cannot react this new molecule
                     curNhbrs = nhbrs[molecule] # gives an array of neighbouring molecules
-                    curRxs   = rxIds[molecule] # gives the indices of reactions associated to the neighbours
+                    curRxs   = rxids[molecule] # gives the indices of reactions associated to the neighbours
                     
                     @inbounds for (i,nhbr) in enumerate(curNhbrs)
                         if states[curNhbrs[i]] == 1 # checks to see that the other molecule is an A
@@ -182,7 +221,7 @@ function run_spr_sim(bioparams, numparams)
 
                 # Now we check to see if any neighbours can or cannot react this new molecule
                 curNhbrs = nhbrs[molecule] # gives an array of neighbouring molecules
-                curRxs   = rxIds[molecule] # gives the indices of reactions associated to the neighbours
+                curRxs   = rxids[molecule] # gives the indices of reactions associated to the neighbours
                 
                 @inbounds for (i,nhbr) in enumerate(curNhbrs)
                     if states[nhbr] == 2 # checks to see that the other molecule is a B
@@ -195,7 +234,7 @@ function run_spr_sim(bioparams, numparams)
                 end
 
 
-            elseif rxIdx <= (twoN + halfnumPairs)
+            elseif rxIdx <= (twoN + halfnumpairs)
                 # A + B --> C
                 curRx = rxIdx - twoN
                 A = A-1
@@ -221,23 +260,23 @@ function run_spr_sim(bioparams, numparams)
                 DataStructures.update!(times, molecule2+N, Inf)
                             
                 # turn off all A+B --> C reactions
-                @inbounds for rxid in rxIds[molecule1]
+                @inbounds for rxid in rxids[molecule1]
                     DataStructures.update!(times, twoN + rxid, Inf)
                 end
-                @inbounds for rxid in rxIds[molecule2]
+                @inbounds for rxid in rxids[molecule2]
                     DataStructures.update!(times, twoN + rxid, Inf)
                 end                                    
                 # turn on possible C --> A + B reaction
-                DataStructures.update!(times, twoN + halfnumPairs + curRx, tc + τkc*randexp())
+                DataStructures.update!(times, twoN + halfnumpairs + curRx, tc + τkc*randexp())
 
             else
                 # C --> A + B
-                curRx = rxIdx - (twoN+halfnumPairs)
+                curRx = rxIdx - (twoN+halfnumpairs)
                 A = A + 1
                 B = B + 1
                 C = C - 1
 
-                DataStructures.update!(times, curRx + twoN + halfnumPairs, Inf)
+                DataStructures.update!(times, curRx + twoN + halfnumpairs, Inf)
 
                 pAB = rand() # random number to decide which molecule to place first, i.e. which tether is freed
                 moleculeA = rpair[curRx][1]
@@ -262,7 +301,7 @@ function run_spr_sim(bioparams, numparams)
                 DataStructures.update!(times, N + moleculeB, tc + τkoff * randexp())
                 
                 curNhbrs = nhbrs[moleculeA]
-                curRxs   = rxIds[moleculeA]
+                curRxs   = rxids[moleculeA]
 
                 @inbounds for (i,nhbr) in enumerate(curNhbrs)
                     if states[nhbr] == 2 # check to see if the neighbour is a B molecule
@@ -273,7 +312,7 @@ function run_spr_sim(bioparams, numparams)
                 end
 
                 curNhbrs = nhbrs[moleculeB]
-                curRxs   = rxIds[moleculeB]
+                curRxs   = rxids[moleculeB]
 
                 @inbounds for (i,nhbr) in enumerate(curNhbrs)
                     # check to see if the neighbour is an A molecule
@@ -287,9 +326,9 @@ function run_spr_sim(bioparams, numparams)
         end
 
         @inbounds for i=1:length(tsave)
-            BindCount[i] += CopyNumbers[2,i] + CopyNumbers[3,i]
+            bindcount[i] += copynumbers[2,i] + copynumbers[3,i]
         end
     end
 
-    return BindCount.*(CP/(N*nsims))
+    return bindcount.*(CP/(N*nsims))
 end
