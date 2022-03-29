@@ -28,6 +28,7 @@ end
 flip(r) = CartesianIndex(r[2],r[1])
 
 
+# setup molecule initial positions, and then
 # for each molecule calculate neighbors within reach
 # also setup the reaction index labelling 
 function setup_spr_sim!(nhbrpars, biopars, numpars)
