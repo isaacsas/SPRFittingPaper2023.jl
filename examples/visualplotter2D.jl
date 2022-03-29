@@ -4,11 +4,12 @@ using DataFrames, Printf, CSV
 using UnPack
 
 
-reaches = [2.0,10.0,30.0]
-kon     = 10^(-4)   # per concentration per time 
-koff    = 0.05      # per time
-konb    = 1.0       # per time
-CP      = 1.0        
+reaches    = [2.0,10.0,30.0]
+kon        = 10^(-4)   # per concentration per time 
+koff       = 0.05      # per time
+konb       = 1.0       # per time
+CP         = 1.0        
+tstop_AtoB = 150.0     # time to turn off A --> B
 
 # A -> B rate in simulation is (kon * antibodyconcens[i])
 antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]  
@@ -90,7 +91,7 @@ biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=
 # you can pass non-default numerical parameters as keywords to SimParams
 # an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
 # to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; resample_initlocs=false)
+numpars = SimParams(biopars.antigenconcen; resample_initlocs=false, tstop_AtoB)
 
 # run simulations and plot/save data
 p1v = []; p2v = []; Xv = []; Yv = [];

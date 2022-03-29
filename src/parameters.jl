@@ -18,17 +18,15 @@ end
 
 
 # Note the following depends on antigen concentration to set L, so needs to be recalculated if it changes!
-mutable struct SimParams{T<:Number,U,V<:AbstractArray{T}}
+mutable struct SimParams{T<:Number,V<:AbstractArray{T}}
     """Number of particles"""
     N::Int
     """Time to end simulations at"""
     tstop::T
     """Time to turn off A --> B reaction"""
-    ts_1::T
+    tstop_AtoB::T
     """How often to save data in time"""
     dt::T
-    """Time vector for interpolation"""
-    t::U 
     """Domain Length"""
     L::T 
     """Initial Particle Positions"""
@@ -43,17 +41,15 @@ end
 function SimParams(antigenconcen; 
                    N=1000, 
                    tstop=600.0, 
-                   ts_1=150.0, 
+                   tstop_AtoB=Inf, 
                    dt=1.0, 
-                   t=nothing, 
                    L=nothing, 
                    initlocs=nothing, 
                    resample_initlocs=true,
                    nsims=1000)
-    tv  = isnothing(t) ? range(1.0, tstop+1, step=1.0) : t    
     Lv  = isnothing(L) ? sqrt(N / (antigenconcen)) : L
     initlocsv = isnothing(initlocs) ? (Lv .* rand(2,N) .- Lv/2) : initlocs    
-    SimParams(N,tstop,ts_1,dt,tv,Lv,initlocsv,resample_initlocs,nsims)
+    SimParams(N,tstop,tstop_AtoB,dt,Lv,initlocsv,resample_initlocs,nsims)
 end
 
 function SimParams(biopars::BioPhysParams; kwargs...)

@@ -38,7 +38,7 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
 
     if resample_initlocs
         rand!(initlocs)
-        initlocs .*= L    
+        initlocs .*= L 
     end
 
     reachsq = reach*reach
@@ -55,12 +55,6 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
         end
     end
 
-    # now we create a map from a molecule to all possible neighbours
-    for i in 1:N
-        resize!(nhbrs[i], Acnt[i])
-        resize!(rxids[i], Acnt[i])
-    end
-
     # Create a flipped index version to account for the second ordering of pairs. 
     # This will allow us to assume that the first index is 
     # always an A molecule and the second is always a B molecule.
@@ -68,7 +62,13 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
     numpairs     = length(rpair)
     halfnumpairs = numpairs ÷ 2
 
-    next  = ones(Int,N)
+    # now we create a map from a molecule to all possible neighbours
+    @inbounds for i in 1:N
+        (nhbrs[i] != Acnt[i]) && resize!(nhbrs[i], Acnt[i])
+        (rxids[i] != Acnt[i]) && resize!(rxids[i], Acnt[i])
+    end
+
+    next .= 1
     ii    = 1
     @inbounds for i=1:numpairs
         ridx             = rpair[i][1]
@@ -86,7 +86,7 @@ end
 
 function run_spr_sim(biopars, numpars)
     @unpack kon,koff,konb,reach,CP,antibodyconcen = biopars
-    @unpack nsims,N,ts_1,tstop,dt,L,resample_initlocs = numpars
+    @unpack nsims,N,tstop_AtoB,tstop,dt,L,resample_initlocs = numpars
     
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
@@ -109,7 +109,8 @@ function run_spr_sim(biopars, numpars)
     # preallocate arrays for current state information
     states      = ones(Int,N,1)              # stores the current state of each moleule
     copynumbers = zeros(Int,3,length(tsave))
-    times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(zeros(2*N + numpairs))   
+    tvec        = zeros(2*N + numpairs)
+    times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
 
      # Now we can run the simulation
     @inbounds for _ in 1:nsims     
@@ -143,17 +144,25 @@ function run_spr_sim(biopars, numpars)
         tp               = tsave[sidx]
 
         # Initial reactions times
-        for i in 1:N
-            update!(times, i, τkon*randexp())
+        rebuild_times = resample_initlocs && (length(tvec) != (2*N+numpairs))
+        rebuild_times && (resize!(tvec, 2*N + numpairs))
+        for i = 1:N
+            tvec[i] = τkon*randexp()
         end
-        for i in (N+1):length(times)
-            update!(times, i, Inf)
+        tvec[(N+1):end] .= Inf
+
+        if rebuild_times
+            times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
+        else
+            for (i,tval) in pairs(tvec)
+                update!(times, i, tval)
+            end
         end
         turnoff = false
 
 
         @inbounds while tc <= tstop
-            if tc >= ts_1 && turnoff == false
+            if tc >= tstop_AtoB && turnoff == false
                 # We turn off the A-->B reaction
                 τkon = Inf
                 for i=1:N
@@ -178,7 +187,7 @@ function run_spr_sim(biopars, numpars)
             # Update state based on the reaction that has occurred
 
             if rxIdx <= N
-                if tc >= ts_1
+                if tc >= tstop_AtoB
                     # then the A->B reaction interacts with the time at which that reaction is turned off
                     molecule         = rxIdx # index for the molecule that just reacted
                     DataStructures.update!(times, molecule, Inf)
