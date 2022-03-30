@@ -28,6 +28,40 @@ sixplotname      = joinpath(savefolder, "fullfig.pdf")
 toprowplotname   = joinpath(savefolder, "toprow.pdf")
 datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 
+################## INTERNAL PARAMETERS ################
+
+# this stores the biological parameters and is passed around in the code
+biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=antibodyconcens[1], antigenconcen)
+
+# you can pass non-default numerical parameters as keywords to SimParams
+# an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
+# to change dt and N from the defaults, see definition of SimParams.
+numpars = SimParams(biopars.antigenconcen; resample_initlocs=false, tstop_AtoB)
+
+# this will be used by the simulator to store output as it goes
+struct Outputter
+    bindcnt::Vector{Float64}
+end
+
+# this just sums up the amount of B and C at each time
+@inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)
+    for i in eachindex(tsave)
+        o.bindcnt[i] += copynumbers[2,i] + copynumbers[3,i]
+    end
+    nothing
+end
+
+# this is called once all simulations finish to finalize the output
+@inline function (o::Outputter)(biopars, numpars)
+    @unpack CP = biopars
+    @unpack N,nsims = numpars
+    o.bindcnt .*= (CP/(N*nsims))
+    nothing
+end
+
+############### END INTERNAL PARAMETERS ################
+
+
 ############### plotting code 
 function circleshape(h,k,r)
     theta = LinRange(0,2*pi,500)
@@ -37,13 +71,14 @@ end
 function makeplots(biopars, numpars, reach, antibodyconcens)
     @unpack initlocs,L,N,tstop = numpars
     biopars.reach = reach
-
+    numsavepts = round(Int, tstop/numpars.dt) + 1
     SD = []    
     for (i,antibodyconcen) in enumerate(antibodyconcens)
         println("Running reach = $reach, [antibody] = $antibodyconcen ($i/$(length(antibodyconcens)))")
         biopars.antibodyconcen = antibodyconcen
-        bindcnt = run_spr_sim(biopars, numpars)
-        push!(SD, bindcnt)
+        output = Outputter(zeros(numsavepts))
+        run_spr_sim!(output, biopars, numpars)
+        push!(SD, output.bindcnt)
     end
 
     # plot circles at initial locations
@@ -84,14 +119,6 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
 end
 
 ########### ACTUAL SCRIPT TO RUN SIMS AND MAKE FIGURES
-
-# this stores the biological parameters and is passed around in the code
-biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=antibodyconcens[1], antigenconcen)
-
-# you can pass non-default numerical parameters as keywords to SimParams
-# an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
-# to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; resample_initlocs=false, tstop_AtoB)
 
 # run simulations and plot/save data
 p1v = []; p2v = []; Xv = []; Yv = [];

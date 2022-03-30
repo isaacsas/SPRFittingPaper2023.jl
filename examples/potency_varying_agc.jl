@@ -1,14 +1,11 @@
 using SPRFitting
-using Roots, Interpolations
+using Roots, Interpolations, UnPack
 using Plots, DataFrames, XLSX
 
 ########### PARMETERS TO MODIFY ###########
 
 antigenconcens  = [0.2*(1/5)^(i) for i in 9:-1:1]
-antigenconcens = [0.2*(1/5)^(i) for i in 9:-1:6]
-#antigenconcens  = [0.2*(1/5)^(9)]
 antibodyconcens = 10.0 .^ range(-2,6,step=8/29)
-#antibodyconcens = 10.0 .^ [-2]
 
 #FD-11A
 kon = 1.027E-04
@@ -29,8 +26,8 @@ reach = 32.766
 # reach = 4.02E+01
 
 plotfigure  = true
-savefigure  = false
-savecsv     = false
+savefigure  = true
+savecsv     = true
 savefolder  = joinpath(@__DIR__, "figures and data")
 figname     = joinpath(savefolder, "DoseResponse.pdf")
 xlsxname    = joinpath(savefolder, "DoseResponseData.xlsx")
@@ -51,6 +48,36 @@ biopars = BioPhysParams(; kon, koff, konb, reach)
 # as the antigenconcentration changes
 numpars = SimParams(biopars.antigenconcen[1]; tstop, dt, N, nsims)
 
+# this will be used by the simulator to store output as it goes
+struct Outputter
+    bindcnt::Vector{Float64}
+end
+
+# N = number of time points to save at
+function Outputter(N)
+    Outputter(zeros(N))
+end
+
+# this just sums up the amount of A at each time
+@inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)    
+    o.bindcnt .+= @view copynumbers[1,:]
+    nothing
+end
+
+# this is called once all simulations finish to finalize the output
+@inline function (o::Outputter)(biopars, numpars)
+    @unpack CP = biopars
+    @unpack N,nsims = numpars
+    o.bindcnt .*= (CP/(N*nsims))
+    nothing
+end
+
+# this is used to reset an output object
+@inline function reset!(o::Outputter)
+    o.bindcnt .= 0
+    nothing 
+end
+
 ########### END INTERNAL PARAMETER STRUCTURES ###########
 
 function getIC50(freeantigen, antibodyconcens)
@@ -69,15 +96,16 @@ end
 
 # note that this modifies biopars and numpars!!!
 function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
-    # we just save the value at the final time point
-    freeantigensims = zeros(Float64, length(antibodyconcens), 1001)
+    numsave = round(Int, numpars.tstop / numpars.dt) + 1
+    outdata = Outputter(numsave)
+    freeantigensims = zeros(Float64, length(antibodyconcens), numsave)    
     for (ax,antibodyconcen) in enumerate(antibodyconcens)
-        numpars.L              = (numpars.N/antigenconcen)^(1/2) 
+        numpars.L              = sqrt(numpars.N/antigenconcen)
         biopars.antigenconcen  = antigenconcen
-        biopars.antibodyconcen = antibodyconcen    
-        @show biopars
-        freeantigen            = run_spr_sim(biopars, numpars)
-        freeantigensims[ax,:]  = freeantigen
+        biopars.antibodyconcen = antibodyconcen            
+        run_spr_sim!(outdata, biopars, numpars)
+        freeantigensims[ax,:] = outdata.bindcnt
+        reset!(outdata)
     end
     return freeantigensims
 end

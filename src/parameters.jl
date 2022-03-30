@@ -56,7 +56,7 @@ function Base.show(io::IO, ::MIME"text/plain", sps::SimParams)
     println(io, "tstop_AtoB = ", tstop_AtoB)
     println(io, "save frequency (dt) = ", dt)
     println(io, "domain length (L) = ", L)
-    println(io, "reasmple_initlocs = ", resample_initlocs)
+    println(io, "resample_initlocs = ", resample_initlocs)
     print(io, "nsims = ", nsims)
 end
 

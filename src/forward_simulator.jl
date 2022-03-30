@@ -34,7 +34,7 @@ flip(r) = CartesianIndex(r[2],r[1])
 function setup_spr_sim!(nhbrpars, biopars, numpars)
     @unpack reach = biopars
     @unpack N,L,resample_initlocs = numpars
-    @unpack nhbrs,rxids,rpair,Acnt,next,initlocs = nhbrpars
+    @unpack nhbrs,rxids,rpair,initlocs,Acnt,next = nhbrpars
 
     if resample_initlocs
         rand!(initlocs)
@@ -84,23 +84,21 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
 end
 
 
-function run_spr_sim(biopars, numpars)
+function run_spr_sim!(outputter, biopars, numpars)
     @unpack kon,koff,konb,reach,CP,antibodyconcen = biopars
     @unpack nsims,N,tstop_AtoB,tstop,dt,L,resample_initlocs = numpars
-    
 
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
 
     # simulation specific parameters
-    τkonb = 1 / (kon * antibodyconcen) # convert to per time units
+    τkon  = 1 / (kon * antibodyconcen) # convert to time units
     τkoff = 1 / koff
-    τkon  = 1 / kon
-    τkc   = 1 / (2*koff)               # C --> A+B (per time)
+    τkonb = 1 / konb
+    τkc   = 1 / (2*koff)               # C --> A+B (time units)
 
     # output 
     tsave = collect(range(0.0,tstop,step=dt))
-    bindcount = zeros(Int,length(tsave))
 
     # setup connectivity info
     nhbrpars = setup_spr_sim!(NhbrParams(; N, initlocs), biopars, numpars)
@@ -108,9 +106,9 @@ function run_spr_sim(biopars, numpars)
     numpairs     = length(rpair)
     halfnumpairs = numpairs ÷ 2
     twoN         = 2*N
-
+    
     # preallocate arrays for current state information
-    states      = ones(Int,N,1)              # stores the current state of each moleule
+    states      = ones(Int,N)              # stores the current state of each moleule
     copynumbers = zeros(Int,3,length(tsave))
     tvec        = zeros(2*N + numpairs)
     times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
@@ -150,7 +148,7 @@ function run_spr_sim(biopars, numpars)
 
         if rebuild_times
             times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
-        else
+        else 
             for (i,tval) in pairs(tvec)
                 update!(times, i, tval)
             end
@@ -332,10 +330,11 @@ function run_spr_sim(biopars, numpars)
             end
         end
 
-        @inbounds for i=1:length(tsave)
-            bindcount[i] += copynumbers[1,i] #copynumbers[2,i] + copynumbers[3,i]
-        end
+        # save per simulation output
+        outputter(tsave, copynumbers, biopars, numpars)
     end
 
-    return bindcount.*(CP/(N*nsims))
+    # post simulation processing of output
+    outputter(biopars, numpars)
+    nothing 
 end
