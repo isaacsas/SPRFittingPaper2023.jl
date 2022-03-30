@@ -88,13 +88,15 @@ function run_spr_sim(biopars, numpars)
     @unpack kon,koff,konb,reach,CP,antibodyconcen = biopars
     @unpack nsims,N,tstop_AtoB,tstop,dt,L,resample_initlocs = numpars
     
+
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
 
     # simulation specific parameters
-    kon  *= antibodyconcen   # convert to per time units
-    kc    = 2*koff           # C --> A+B (per time)
-    twoN  = 2*N
+    τkonb = 1 / (kon * antibodyconcen) # convert to per time units
+    τkoff = 1 / koff
+    τkon  = 1 / kon
+    τkc   = 1 / (2*koff)               # C --> A+B (per time)
 
     # output 
     tsave = collect(range(0.0,tstop,step=dt))
@@ -105,6 +107,7 @@ function run_spr_sim(biopars, numpars)
     @unpack rpair,nhbrs,rxids = nhbrpars
     numpairs     = length(rpair)
     halfnumpairs = numpairs ÷ 2
+    twoN         = 2*N
 
     # preallocate arrays for current state information
     states      = ones(Int,N,1)              # stores the current state of each moleule
@@ -128,12 +131,6 @@ function run_spr_sim(biopars, numpars)
         # Initial particle numbers: All initally time A
         A = N; B = 0; C = 0
         states .= 1
-
-        # mean times for each reactions
-        τkonb = 1 / konb
-        τkoff = 1 / koff
-        τkon  = 1 / kon
-        τkc   = 1 / kc
         
         # Saving array
         copynumbers     .= 0
@@ -336,7 +333,7 @@ function run_spr_sim(biopars, numpars)
         end
 
         @inbounds for i=1:length(tsave)
-            bindcount[i] += copynumbers[2,i] + copynumbers[3,i]
+            bindcount[i] += copynumbers[1,i] #copynumbers[2,i] + copynumbers[3,i]
         end
     end
 

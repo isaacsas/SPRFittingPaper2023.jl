@@ -5,7 +5,10 @@ using Plots, DataFrames, XLSX
 ########### PARMETERS TO MODIFY ###########
 
 antigenconcens  = [0.2*(1/5)^(i) for i in 9:-1:1]
+antigenconcens = [0.2*(1/5)^(i) for i in 9:-1:6]
+#antigenconcens  = [0.2*(1/5)^(9)]
 antibodyconcens = 10.0 .^ range(-2,6,step=8/29)
+#antibodyconcens = 10.0 .^ [-2]
 
 #FD-11A
 kon = 1.027E-04
@@ -26,8 +29,8 @@ reach = 32.766
 # reach = 4.02E+01
 
 plotfigure  = true
-savefigure  = true
-savecsv     = true
+savefigure  = false
+savecsv     = false
 savefolder  = joinpath(@__DIR__, "figures and data")
 figname     = joinpath(savefolder, "DoseResponse.pdf")
 xlsxname    = joinpath(savefolder, "DoseResponseData.xlsx")
@@ -67,22 +70,23 @@ end
 # note that this modifies biopars and numpars!!!
 function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
     # we just save the value at the final time point
-    freeantigensims = zeros(Float64, length(antibodyconcens))
+    freeantigensims = zeros(Float64, length(antibodyconcens), 1001)
     for (ax,antibodyconcen) in enumerate(antibodyconcens)
-        numpars.L              = (nsims/antigenconcen)^(1/2) 
+        numpars.L              = (numpars.N/antigenconcen)^(1/2) 
         biopars.antigenconcen  = antigenconcen
         biopars.antibodyconcen = antibodyconcen    
+        @show biopars
         freeantigen            = run_spr_sim(biopars, numpars)
-        freeantigensims[ax]    = freeantigen[end]
+        freeantigensims[ax,:]  = freeantigen
     end
     return freeantigensims
 end
 
 function varyantigenconcen(biopars, numpars, antigenconcens, antibodyconcens)
-    freeantigenstore = zeros(Float64,30,length(antigenconcens))
+    freeantigenstore = zeros(Float64,length(antibodyconcens),length(antigenconcens))
     for (ax,antigenconcen) in enumerate(antigenconcens)
         @time freeantigensims   = runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
-        freeantigenstore[:,ax]  = freeantigensims
+        freeantigenstore[:,ax]  = freeantigensims[:,end]
     end
     return freeantigenstore
 end
@@ -94,10 +98,11 @@ end
 if plotfigure
     X=[antibodyconcens for antigenconcen in antigenconcens]
     Y=[freeantigenstore[:,ax] for ax in 1:length(antigenconcens)]
-    Labels=["$(antigenconcen)" for antigenconcen in antigenconcens]
+    @show Y
+    labels=["$(antigenconcen)" for antigenconcen in antigenconcens]
     plt = plot(X,Y,seriestype=:line,label=:none,xscale=:log10,
                xticks=[1e-2,1e-1,1e0,1e1,1e2,1e3,1e4,1e5],
-               yticks=[0,.25,.5,.75,1.0].
+               yticks=[0,.25,.5,.75,1.0],
                xlabel = "antibody concentration nM",
                ylabel = "Free antigen")
 

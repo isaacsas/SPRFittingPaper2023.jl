@@ -16,6 +16,17 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     antibodyconcen::T = 1.0
 end
 
+function Base.show(io::IO,  ::MIME"text/plain", bps::BioPhysParams)   
+    @unpack kon,koff,konb,reach,CP,antigenconcen,antibodyconcen = bps 
+    println(io, summary(bps))
+    println(io, "kon = ", kon)
+    println(io, "koff = ", koff)
+    println(io, "konb = ", konb)
+    println(io, "reach = ", reach)
+    println(io, "CP = ", CP)
+    println(io, "[antigen] = ", antigenconcen)
+    print(io, "[antibody] = ", antibodyconcen)
+end
 
 # Note the following depends on antigen concentration to set L, so needs to be recalculated if it changes!
 mutable struct SimParams{T<:Number,V<:AbstractArray{T}}
@@ -35,6 +46,18 @@ mutable struct SimParams{T<:Number,V<:AbstractArray{T}}
     resample_initlocs::Bool
     """Number of simulations in runsim (to control sampling error)"""
     nsims::Int
+end
+
+function Base.show(io::IO, ::MIME"text/plain", sps::SimParams)   
+    @unpack N,tstop,tstop_AtoB,dt,L,resample_initlocs,nsims = sps 
+    println(io, summary(sps))
+    println(io, "number of particles (N) = ", N)
+    println(io, "tstop = ", tstop)
+    println(io, "tstop_AtoB = ", tstop_AtoB)
+    println(io, "save frequency (dt) = ", dt)
+    println(io, "domain length (L) = ", L)
+    println(io, "reasmple_initlocs = ", resample_initlocs)
+    print(io, "nsims = ", nsims)
 end
 
 # converts antigen concentration to number of units

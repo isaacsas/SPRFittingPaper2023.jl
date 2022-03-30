@@ -11,3 +11,6 @@ Manifest.toml
 .vscode/*
 
 LocalPreferences.toml
+
+examples/figures and data
+examples/figures and data/*.*
