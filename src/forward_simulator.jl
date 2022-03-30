@@ -64,8 +64,8 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
 
     # now we create a map from a molecule to all possible neighbours
     @inbounds for i in 1:N
-        (nhbrs[i] != Acnt[i]) && resize!(nhbrs[i], Acnt[i])
-        (rxids[i] != Acnt[i]) && resize!(rxids[i], Acnt[i])
+        (length(nhbrs[i]) != Acnt[i]) && resize!(nhbrs[i], Acnt[i])
+        (length(rxids[i]) != Acnt[i]) && resize!(rxids[i], Acnt[i])
     end
 
     next .= 1
@@ -85,17 +85,16 @@ end
 
 
 function run_spr_sim!(outputter, biopars, numpars)
-    @unpack kon,koff,konb,reach,CP,antibodyconcen = biopars
     @unpack nsims,N,tstop_AtoB,tstop,dt,L,resample_initlocs = numpars
 
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
 
     # simulation specific parameters
-    τkon  = 1 / (kon * antibodyconcen) # convert to time units
-    τkoff = 1 / koff
-    τkonb = 1 / konb
-    τkc   = 1 / (2*koff)               # C --> A+B (time units)
+    τkon  = 1 / (biopars.kon * biopars.antibodyconcen) # convert to time units
+    τkoff = 1 / biopars.koff
+    τkonb = 1 / biopars.konb
+    τkc   = 1 / (2*biopars.koff)               # C --> A+B (time units)
 
     # output 
     tsave = collect(range(0.0,tstop,step=dt))
@@ -146,6 +145,7 @@ function run_spr_sim!(outputter, biopars, numpars)
         end
         tvec[(N+1):end] .= Inf
 
+        times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         if rebuild_times
             times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         else 
