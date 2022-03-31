@@ -91,7 +91,8 @@ function run_spr_sim!(outputter, biopars, numpars)
     initlocs = copy(numpars.initlocs)
 
     # output 
-    tsave = collect(range(0.0,tstop,step=dt))
+    tsave   = collect(range(0.0,tstop,step=dt))
+    numsave = length(tsave)
 
     # setup connectivity info
     nhbrpars = NhbrParams(; N, initlocs)
@@ -165,29 +166,29 @@ function run_spr_sim!(outputter, biopars, numpars)
                 turnoff = true
             end        
 
-            tnext,rxIdx = top_with_handle(times)
+            tnext,rxidx = top_with_handle(times)
 
             # update to new time
             tc = tnext
 
-            @inbounds while (tc>tp) && (tp <= tstop)
+            @inbounds while (tc>tp) && (sidx <= numsave)
                 copynumbers[1,sidx] = A
                 copynumbers[2,sidx] = B
-                copynumbers[3,sidx] = C
-                tp   += dt
+                copynumbers[3,sidx] = C                
                 sidx += 1
+                tp = (sidx <= numsave) ? tsave[sidx] : (tstop+eps(tstop))
             end
 
             # Update state based on the reaction that has occurred
 
-            if rxIdx <= N
+            if rxidx <= N
                 if tc >= tstop_AtoB
                     # then the A->B reaction interacts with the time at which that reaction is turned off
-                    molecule         = rxIdx # index for the molecule that just reacted
+                    molecule         = rxidx # index for the molecule that just reacted
                     DataStructures.update!(times, molecule, Inf)
                 else
                     # A --> B
-                    molecule         = rxIdx # index for the molecule that just reacted
+                    molecule         = rxidx # index for the molecule that just reacted
                     A                = A-1
                     B                = B+1
                     states[molecule] = 2
@@ -210,9 +211,9 @@ function run_spr_sim!(outputter, biopars, numpars)
 
                 end
 
-            elseif rxIdx <= twoN
+            elseif rxidx <= twoN
                 # B --> A
-                molecule         = rxIdx - N # index for the molecule that just reacted
+                molecule         = rxidx - N # index for the molecule that just reacted
                 A                = A+1
                 B                = B-1
                 states[molecule] = 1
@@ -238,9 +239,9 @@ function run_spr_sim!(outputter, biopars, numpars)
                 end
 
 
-            elseif rxIdx <= (twoN + halfnumpairs)
+            elseif rxidx <= (twoN + halfnumpairs)
                 # A + B --> C
-                curRx = rxIdx - twoN
+                curRx = rxidx - twoN
                 A = A-1
                 B = B-1
                 C = C+1
@@ -275,7 +276,7 @@ function run_spr_sim!(outputter, biopars, numpars)
 
             else
                 # C --> A + B
-                curRx = rxIdx - (twoN+halfnumpairs)
+                curRx = rxidx - (twoN+halfnumpairs)
                 A = A + 1
                 B = B + 1
                 C = C - 1
@@ -327,6 +328,15 @@ function run_spr_sim!(outputter, biopars, numpars)
                     end
                 end                 
             end
+        end
+
+        # save at remaining output times (which must be greater than stopping
+        # time) this assumes solution is constant past tstop!
+        @inbounds while sidx <= numsave
+            copynumbers[1,sidx] = A
+            copynumbers[2,sidx] = B
+            copynumbers[3,sidx] = C
+            sidx += 1
         end
 
         # save per simulation output

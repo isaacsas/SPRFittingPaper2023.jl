@@ -32,7 +32,7 @@ savefolder  = joinpath(@__DIR__, "figures and data")
 figname     = joinpath(savefolder, "DoseResponse.pdf")
 xlsxname    = joinpath(savefolder, "DoseResponseData.xlsx")
 
-tstop  = 15.0*60.0       # time in seconds
+tstop  = 20.0*60.0       # time in seconds
 dt     = tstop/1000      # times at which we save the data
 N      = 1000            # number of particles (tethers)
 nsims  = 20
@@ -53,18 +53,23 @@ struct Outputter
     bindcnt::Vector{Float64}
 end
 
+# creat the Outputter via knowing N, where 
 # N = number of time points to save at
 function Outputter(N)
     Outputter(zeros(N))
 end
 
-# this just sums up the amount of A at each time
+# this is called after each individual stochastic simulation to handle
+# processing the counts of each species at each time. here we just cumulatively
+# sum up the amount of A at each time
 @inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)    
     o.bindcnt .+= @view copynumbers[1,:]
     nothing
 end
 
-# this is called once all simulations finish to finalize the output
+# this is called once all simulations finish, for a given parameter set, to
+# finalize the output. Here we rescale to get a normalized average fraction of 
+# particles in the A state.
 @inline function (o::Outputter)(biopars, numpars)
     @unpack CP = biopars
     @unpack N,nsims = numpars
@@ -72,7 +77,8 @@ end
     nothing
 end
 
-# this is used to reset an output object
+# this is used to reset the output object prior to a new simulations (i.e. with
+# new parameters)
 @inline function (o::Outputter)()
     o.bindcnt .= 0
     nothing 
@@ -80,31 +86,29 @@ end
 
 ########### END INTERNAL PARAMETER STRUCTURES ###########
 
-function getIC50(freeantigen, antibodyconcens)
-
-    itp     = interpolate(freeantigen[:,1], BSpline(Linear()))
-    abrange = range(log10(antibodyconcens[1]),log10(antibodyconcens[end]); length=length(antibodyconcens))
-    itp_x   = interpolate(abrange, BSpline(Linear()))
-
-    f(x) = itp(x)-0.5
-
-    z = find_zero(f,(1,30),Bisection())
-
-    return 10^(itp_x(z))
-    
-end
+# note currently used and needs updating
+# function getIC50(freeantigen, antibodyconcens)
+#     itp     = interpolate(freeantigen[:,1], BSpline(Linear()))
+#     abrange = range(log10(antibodyconcens[1]),log10(antibodyconcens[end]); length=length(antibodyconcens))
+#     itp_x   = interpolate(abrange, BSpline(Linear()))
+#     f(x) = itp(x)-0.5
+#     z = find_zero(f,(1,30),Bisection())
+#     return 10^(itp_x(z))    
+# end
 
 # note that this modifies biopars and numpars!!!
 function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
     numsave = round(Int, numpars.tstop / numpars.dt) + 1
     outdata = Outputter(numsave)
     freeantigensims = zeros(Float64, length(antibodyconcens), numsave)    
-    for (ax,antibodyconcen) in enumerate(antibodyconcens)
-        numpars.L              = sqrt(numpars.N/antigenconcen)
-        biopars.antigenconcen  = antigenconcen
+    numpars.L = sqrt(numpars.N/antigenconcen)
+    biopars.antigenconcen  = antigenconcen
+
+    for (ax,antibodyconcen) in enumerate(antibodyconcens)                
         biopars.antibodyconcen = antibodyconcen            
         run_spr_sim!(outdata, biopars, numpars)
         freeantigensims[ax,:] = outdata.bindcnt
+        @show freeantigensims[ax,end]
         outdata()   # reset bindcnt to zero
     end
     return freeantigensims
@@ -119,7 +123,7 @@ function varyantigenconcen(biopars, numpars, antigenconcens, antibodyconcens)
     return freeantigenstore
 end
 
-################### ACTUAL SCRIPT TO RUnsimsSIMS AND PLOT %%%%%%%%%%%%%%%%%%%%%%%%
+################### ACTUAL SCRIPT TO RUN SIMULATIONS AND PLOT %%%%%%%%%%%%%%%%%%%%%%%%
 
 @time freeantigenstore = varyantigenconcen(biopars, numpars, antigenconcens, antibodyconcens)
 

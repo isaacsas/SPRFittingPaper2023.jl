@@ -74,9 +74,9 @@ function circleshape(h,k,r)
 end
 
 function makeplots(biopars, numpars, reach, antibodyconcens)
-    @unpack initlocs,L,N,tstop = numpars
+    @unpack initlocs,L,N,tstop,dt = numpars
     biopars.reach = reach
-    numsavepts = round(Int, tstop/numpars.dt) + 1
+    numsavepts = round(Int, tstop/dt) + 1
     SD = []    
     for (i,antibodyconcen) in enumerate(antibodyconcens)
         println("Running reach = $reach, [antibody] = $antibodyconcen ($i/$(length(antibodyconcens)))")
@@ -116,7 +116,7 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
     p1 = plot(circles,fillalpha=.5,seriestype=[:shape,],labels=:none,color=Colors,xlims=(-50,50),ylims=(-50,50),title="reach = $reach nm")
 
     # plots curves
-    X2 = 0:tstop
+    X2 = range(0.0, tstop, step=dt)
     Y2 = [SD[i] for i in eachindex(antibodyconcens)]
     p2 = plot(X2,Y2,labels=:none,color="black",xlims=(0,tstop),ylims=(0,1))
 
