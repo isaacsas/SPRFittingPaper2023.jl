@@ -1,6 +1,6 @@
 using SPRFitting
 using Plots
-using DataFrames, Printf, CSV
+using DataFrames, Printf, CSV, LinearAlgebra
 using UnPack
 
 
@@ -10,6 +10,9 @@ koff       = 0.05      # per time
 konb       = 1.0       # per time
 CP         = 1.0        
 tstop_AtoB = 150.0     # time to turn off A --> B
+tstop      = 600.0
+N          = 1000      # number of particles
+nsims      = 1000
 
 # A -> B rate in simulation is (kon * antibodyconcens[i])
 antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]  
@@ -31,12 +34,13 @@ datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 ################## INTERNAL PARAMETERS ################
 
 # this stores the biological parameters and is passed around in the code
-biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, antibodyconcen=antibodyconcens[1], antigenconcen)
+biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, 
+                          antibodyconcen=antibodyconcens[1], antigenconcen)
 
 # you can pass non-default numerical parameters as keywords to SimParams
 # an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
 # to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; resample_initlocs=false, tstop_AtoB)
+numpars = SimParams(biopars.antigenconcen; N, nsims, resample_initlocs=false, tstop, tstop_AtoB)
 
 # this will be used by the simulator to store output as it goes
 struct Outputter
@@ -45,7 +49,8 @@ end
 
 # this just sums up the amount of B and C at each time
 @inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)
-    for i in eachindex(tsave)
+    len = size(copynumbers,2)
+    for i in 1:len
         o.bindcnt[i] += copynumbers[2,i] + copynumbers[3,i]
     end
     nothing
@@ -122,7 +127,6 @@ end
 
 # run simulations and plot/save data
 p1v = []; p2v = []; Xv = []; Yv = [];
-idx = 1
 for (i,reach) in pairs(reaches)
     p1,p2,X,Y = makeplots(biopars, numpars, reaches[i], antibodyconcens)
     push!(p1v,p1); push!(p2v,p2); push!(Xv,X); push!(Yv,Y)

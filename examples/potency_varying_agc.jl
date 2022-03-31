@@ -73,7 +73,7 @@ end
 end
 
 # this is used to reset an output object
-@inline function reset!(o::Outputter)
+@inline function (o::Outputter)()
     o.bindcnt .= 0
     nothing 
 end
@@ -105,7 +105,7 @@ function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
         biopars.antibodyconcen = antibodyconcen            
         run_spr_sim!(outdata, biopars, numpars)
         freeantigensims[ax,:] = outdata.bindcnt
-        reset!(outdata)
+        outdata()   # reset bindcnt to zero
     end
     return freeantigensims
 end
@@ -144,5 +144,5 @@ if savecsv
     df = DataFrame(freeantigenstore,headers)
 
     # Write the DataFrame to an xlsx file
-    XLSX.writetable(xlsxname,collect(eachcol(df)),names(df))
+    XLSX.writetable(xlsxname,collect(eachcol(df)),names(df); overwrite=true)
 end

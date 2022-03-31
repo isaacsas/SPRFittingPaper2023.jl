@@ -80,7 +80,7 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
         ii = (ii == halfnumpairs) ? 1 : (ii + 1)
     end
 
-    nhbrpars
+    nothing
 end
 
 
@@ -90,17 +90,12 @@ function run_spr_sim!(outputter, biopars, numpars)
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
 
-    # simulation specific parameters
-    τkon  = 1 / (biopars.kon * biopars.antibodyconcen) # convert to time units
-    τkoff = 1 / biopars.koff
-    τkonb = 1 / biopars.konb
-    τkc   = 1 / (2*biopars.koff)               # C --> A+B (time units)
-
     # output 
     tsave = collect(range(0.0,tstop,step=dt))
 
     # setup connectivity info
-    nhbrpars = setup_spr_sim!(NhbrParams(; N, initlocs), biopars, numpars)
+    nhbrpars = NhbrParams(; N, initlocs)
+    setup_spr_sim!(nhbrpars, biopars, numpars)
     @unpack rpair,nhbrs,rxids = nhbrpars
     numpairs     = length(rpair)
     halfnumpairs = numpairs ÷ 2
@@ -114,7 +109,13 @@ function run_spr_sim!(outputter, biopars, numpars)
 
      # Now we can run the simulation
     @inbounds for _ in 1:nsims     
-        
+
+        # reset simulation specific parameters
+        τkon  = 1 / (biopars.kon * biopars.antibodyconcen) # convert to time units
+        τkoff = 1 / biopars.koff
+        τkonb = 1 / biopars.konb
+        τkc   = 1 / (2*biopars.koff)               # C --> A+B (time units)
+
         # reset initial positions and nhbrs since connectivity changes        
         if resample_initlocs
             setup_spr_sim!(nhbrpars, biopars, numpars)
@@ -139,13 +140,12 @@ function run_spr_sim!(outputter, biopars, numpars)
 
         # Initial reactions times
         rebuild_times = resample_initlocs && (length(tvec) != (2*N+numpairs))
-        rebuild_times && (resize!(tvec, 2*N + numpairs))
+        rebuild_times && (resize!(tvec, 2*N + numpairs))        
         for i = 1:N
             tvec[i] = τkon*randexp()
         end
         tvec[(N+1):end] .= Inf
 
-        times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         if rebuild_times
             times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         else 
@@ -154,7 +154,6 @@ function run_spr_sim!(outputter, biopars, numpars)
             end
         end
         turnoff = false
-
 
         @inbounds while tc <= tstop
             if tc >= tstop_AtoB && turnoff == false
@@ -336,5 +335,5 @@ function run_spr_sim!(outputter, biopars, numpars)
 
     # post simulation processing of output
     outputter(biopars, numpars)
-    nothing 
+    nothing
 end
