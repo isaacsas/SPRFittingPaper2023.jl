@@ -1,6 +1,6 @@
 module SPRFitting
 
-using DataStructures, Random
+using DataStructures, Random, StaticArrays
 using UnPack
 
 

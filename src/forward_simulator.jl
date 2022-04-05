@@ -1,28 +1,31 @@
-@inline function sqdist_periodic(pt1, pt2, L)
-    dx = abs(pt1[1] - pt2[1])
-    dy = abs(pt1[2] - pt2[2])
-
-    min(dx, L - dx)^2 + min(dy, L - dy)^2 
+@inline function periodic_dist(pt1, pt2, L) 
+    d = 0.0    
+    @inbounds for i in eachindex(pt1)
+        daxes = abs(pt1[i] - pt2[i])
+        d += min(daxes, L - daxes)^2
+    end
+    d
 end
 
 # stores per-simulation specific information
-struct NhbrParams
+struct NhbrParams{DIM}
    nhbrs::Vector{Vector{Int}} 
    rxids::Vector{Vector{Int}}
    rpair::Vector{CartesianIndex{2}}
-   initlocs::Matrix{Float64}
+   initlocs::Vector{SVector{DIM,Float64}}
    Acnt::Vector{Int}
    next::Vector{Int}
 end
 
-function NhbrParams(; N=0, initlocs=nothing)
+# initlocs = DIM by N matrix of the initial particle locations
+function NhbrParams(initlocs::Vector{SVector{DIM,Float64}}) where {DIM}
+    N     = length(initlocs)
     nhbrs = [Vector{Int}() for _ in 1:N]
     rxids = [Vector{Int}() for _ in 1:N]
     rpair = Vector{CartesianIndex{2}}()
     Acnt  = zeros(Int, N)
     next  = ones(Int, N)
-    initlocsmat = (initlocs===nothing) ? zeros(2,N) : initlocs
-    NhbrParams(nhbrs, rxids, rpair, initlocsmat, Acnt, next)
+    NhbrParams{DIM}(nhbrs, rxids, rpair, initlocs, Acnt, next)
 end
 
 flip(r) = CartesianIndex(r[2],r[1])
@@ -31,13 +34,15 @@ flip(r) = CartesianIndex(r[2],r[1])
 # setup molecule initial positions, and then
 # for each molecule calculate neighbors within reach
 # also setup the reaction index labelling 
-function setup_spr_sim!(nhbrpars, biopars, numpars)
+function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
     @unpack reach = biopars
     @unpack N,L,resample_initlocs = numpars
     @unpack nhbrs,rxids,rpair,initlocs,Acnt,next = nhbrpars
 
     if resample_initlocs
-        rand!(initlocs)
+        for i = 1:length(initlocs)
+            initlocs[i] = rand(SVector{DIM,Float64})
+        end
         initlocs .*= L 
     end
 
@@ -46,7 +51,7 @@ function setup_spr_sim!(nhbrpars, biopars, numpars)
     empty!(rpair)
     @inbounds for i = 1:N
         @inbounds for j = (i+1):N
-            sqd = sqdist_periodic(view(initlocs,:,i), view(initlocs,:,j), L)
+            sqd = periodic_dist(initlocs[i], initlocs[j], L)
             if sqd <= reachsq
                 push!(rpair, CartesianIndex(i,j))
                 Acnt[i] += 1
@@ -95,7 +100,7 @@ function run_spr_sim!(outputter, biopars, numpars)
     numsave = length(tsave)
 
     # setup connectivity info
-    nhbrpars = NhbrParams(; N, initlocs)
+    nhbrpars = NhbrParams(initlocs)
     setup_spr_sim!(nhbrpars, biopars, numpars)
     @unpack rpair,nhbrs,rxids = nhbrpars
     numpairs     = length(rpair)
@@ -127,7 +132,7 @@ function run_spr_sim!(outputter, biopars, numpars)
         #Initial time
         tc = 0.0
 
-        # Initial particle numbers: All initally time A
+        # Initial particle numbers: All initally type A
         A = N; B = 0; C = 0
         states .= 1
         

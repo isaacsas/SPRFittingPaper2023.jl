@@ -46,7 +46,7 @@ biopars = BioPhysParams(; kon, koff, konb, reach)
 
 # this will need to get updated in the code as the domain length changes
 # as the antigenconcentration changes
-numpars = SimParams(biopars.antigenconcen[1]; tstop, dt, N, nsims)
+numpars = SimParams(biopars.antigenconcen[1]; tstop, dt, N, nsims, DIM=2)
 
 # this will be used by the simulator to store output as it goes
 struct Outputter
@@ -108,7 +108,6 @@ function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
         biopars.antibodyconcen = antibodyconcen            
         run_spr_sim!(outdata, biopars, numpars)
         freeantigensims[ax,:] = outdata.bindcnt
-        @show freeantigensims[ax,end]
         outdata()   # reset bindcnt to zero
     end
     return freeantigensims
