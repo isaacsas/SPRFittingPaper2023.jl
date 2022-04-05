@@ -29,7 +29,7 @@ function Base.show(io::IO,  ::MIME"text/plain", bps::BioPhysParams)
 end
 
 # Note the following depends on antigen concentration to set L, so needs to be recalculated if it changes!
-mutable struct SimParams{T<:Number,V<:AbstractArray{T}}
+mutable struct SimParams{T<:Number,DIM}
     """Number of particles"""
     N::Int
     """Time to end simulations at"""
@@ -41,7 +41,7 @@ mutable struct SimParams{T<:Number,V<:AbstractArray{T}}
     """Domain Length"""
     L::T 
     """Initial Particle Positions"""
-    initlocs::V
+    initlocs::Vector{SVector{DIM,Float64}}
     """Resample initlocs every simulation"""
     resample_initlocs::Bool
     """Number of simulations in runsim (to control sampling error)"""
@@ -67,12 +67,17 @@ function SimParams(antigenconcen;
                    tstop_AtoB=Inf, 
                    dt=1.0, 
                    L=nothing, 
+                   DIM=3,
                    initlocs=nothing, 
                    resample_initlocs=true,
                    nsims=1000)
     Lv  = isnothing(L) ? sqrt(N / (antigenconcen)) : L
-    initlocsv = isnothing(initlocs) ? (Lv .* rand(2,N) .- Lv/2) : initlocs    
-    SimParams(N,tstop,tstop_AtoB,dt,Lv,initlocsv,resample_initlocs,nsims)
+    initlocsv = if (initlocs === nothing) 
+        [(Lv .* rand(SVector{DIM,Float64}) .- Lv/2) for _ in 1:N] 
+    else 
+         initlocs    
+    end
+    SimParams{typeof(tstop),DIM}(N,tstop,tstop_AtoB,dt,Lv,initlocsv,resample_initlocs,nsims)
 end
 
 function SimParams(biopars::BioPhysParams; kwargs...)

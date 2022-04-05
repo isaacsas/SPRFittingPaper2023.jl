@@ -40,7 +40,7 @@ biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP,
 # you can pass non-default numerical parameters as keywords to SimParams
 # an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
 # to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; N, nsims, resample_initlocs=false, tstop, tstop_AtoB)
+numpars = SimParams(biopars.antigenconcen; N, nsims, DIM=2, resample_initlocs=false, tstop, tstop_AtoB)
 
 # this will be used by the simulator to store output as it goes
 struct Outputter
@@ -94,7 +94,7 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
         for j in 1:N
             if i==j
             else
-                if SPRFitting.sqdist_periodic(initlocs[:,i],initlocs[:,j],L) < reach^2
+                if SPRFitting.periodic_dist(initlocs[i], initlocs[j], L) < reach^2
                     mono=0
                 end
             end
@@ -105,9 +105,9 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
             push!(BiPhasic,i)
         end
     end
-    X = [initlocs[1,MonoPhasic],initlocs[1,BiPhasic]]
-    Y = [initlocs[2,MonoPhasic],initlocs[2,BiPhasic]]
-    circles = [circleshape(initlocs[1,i],initlocs[2,i],reach/2) for i in 1:N]
+    X = [getindex.(initlocs[MonoPhasic],1),getindex.(initlocs[BiPhasic],1)]
+    Y = [getindex.(initlocs[MonoPhasic],2),getindex.(initlocs[BiPhasic],2)]
+    circles = [circleshape(initlocs[i][1],initlocs[i][2],reach/2) for i in 1:N]
     Colors = ["blue" for i in 1:N]
     Colors = reshape(Colors,1,N) # casts to a matrix which is what plot() needs
     for a in BiPhasic
