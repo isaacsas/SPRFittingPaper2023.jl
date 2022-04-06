@@ -96,3 +96,4 @@ function SimParams(biopars::BioPhysParams; kwargs...)
     SimParams(biopars.antigenconcen; kwargs...)
 end
 
+getdim(simpars::SimParams{T,DIM}) where {T<:Number,DIM} = DIM
