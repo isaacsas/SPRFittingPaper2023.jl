@@ -71,7 +71,7 @@ function SimParams(antigenconcen;
                    initlocs=nothing, 
                    resample_initlocs=true,
                    nsims=1000)
-    Lv  = isnothing(L) ? sqrt(N / (antigenconcen)) : L
+    Lv  = isnothing(L) ? (N / antigenconcen)^(1/DIM) : L
     initlocsv = if (initlocs === nothing) 
         [(Lv .* rand(SVector{DIM,Float64}) .- Lv/2) for _ in 1:N] 
     else 
