@@ -3,6 +3,17 @@ using LinearAlgebra, Interpolations, LossFunctions, BlackBoxOptim
 using DataFrames, CSV, DelimitedFiles, XLSX
 using Plots, JLD
 
+const NUMERICAL_ANTIGEN_CONCEN = 6.023*.1*500/149/26795
+
+# for forward simulations:
+simpars = SimParams(NUMERICAL_ANTIGEN_CONCEN; 
+                    N = 1000,           # number of particles
+                    tstop = 600.0,      # time to end simulations
+                    tstop_AtoB = 150.0, # time to shut off A --> B
+                    dt = 1.0,           # time frequency to save 
+                    DIM=3,              # use a cubic domain
+                    nsims = 100)        # number of simulations to run
+
 
 ############ INPUT ############ 
 experiment_name = "Test_110322"
@@ -62,40 +73,20 @@ function InterpolateFunctionError(param)
     return error
 end
 
-function SimulateFunction(param)
 
-    # Set up the parameters that wont change in each simulation
-    AT = 1.0 # antibody concentration
-    #biophysical on and off rates
-    #k1 = 0.079
-    #km1 = 0.174
-    #k2 = 0.05
-    # D and conversion factor
-    convfactor = 6.023 * 1e-7
 
-    # molecular reach of the second-step reaction
-    LAB = param[4]
-    # constant of proportionality
-    CP = 10^(param[5])
+function update_pars_and_run_spr_sim(logpars, numpars, outputter)
+    antigenconcen = numpars.N / (numpars.L^3)
+    biopars = biopars_from_fitting_vec(logpars; antigenconcen, antibodyconcen=1.0)
 
-    # Convert biophysical parameters into model parameters
-    kon = 10^(param[1]) * AT       # A --> B
-    koff = 10^(param[2])       # B --> A
-    lam =  10^(param[3]) # A+B --> C    --- Makes it orthogonal as now param[1] = k2 / km2
-    kc = 10^(param[2])*2
+    # reset the outputter
+    outputter()
 
-    # Simulation Control
-    ST_uM = 500/149/26795*1000000 # Maps 500 RU to a concentration in uM
-    ST = ST_uM * convfactor # converts from uM to molecules per nm^3
-    N = 1000 # number of particles (tethers)
-    L = (N/ST)^(1/3) # so we choose both the concentration and the number of particles and find the appropriate size domain
-    tfinal = 600 # make less rigid?
-    ts_1 = 150 # time at which we shut off the A --> B reaction
-    dt = 1 # time at which we save the data
-    t = 1:1:(tfinal+1) # time vec for interpolation
-    initLocs = rand(3,N)*L   # moved this here...
+    # run the simulations
+    run_spr_sim!(outputter, biopars, numpars)
 
-    Simulate_AntibodyModel(kc,100,kon,koff,lam,LAB,N,L,ts_1,tfinal,dt,tsave,CP)
+    # return the output
+    outputter.bindcnt
 end
 
 function createData(file)
@@ -209,7 +200,7 @@ function visualiseFit(result, Times, RefData,filename)
     timepoints=0:600#Times[end]
     for j= 1:n_dil
         params = [Params[1]+log10(ABC[j]/ABC[1]),Params[2],Params[3],Params[4],Params[5]]
-        Y=SimulateFunction(params)
+        Y=update_pars_and_run_spr_sim(params, antigenconcen)
         plot!(timepoints,Y[1,:],label="")
     end
 
@@ -239,7 +230,7 @@ function saveFit(result, Times, RefData, filename)
 
         # Simulate the model and include the averaged kinetics data
         params = [Params[1]+log10(ABC[j]/ABC[1]),Params[2],Params[3],Params[4],Params[5]]
-        Y=SimulateFunction(params) # this function assumes time = 600 sec
+        Y=update_pars_and_run_spr_sim(params, antigenconcen) # this function assumes time = 600 sec
         SaveData[:,2*j+1] .= Y[1,:]
     end
 

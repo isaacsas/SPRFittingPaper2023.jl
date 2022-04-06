@@ -16,6 +16,18 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     antibodyconcen::T = 1.0
 end
 
+# generate BioPhysParams from a parameter vector from fitting
+# assumes: 
+# p = [log10(kon), log10(koff), log10(konb), reach, log10(CP)] 
+function biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=1.0)
+    kon   = 10^p[1]
+    koff  = 10^p[2]
+    konb  = 10^p[3]
+    reach = p[4]
+    CP    = 10^p[5]
+    BioPhysParams(kon,koff,konb,reach,CP,antigenconcen,antibodyconcen)
+end
+
 function Base.show(io::IO,  ::MIME"text/plain", bps::BioPhysParams)   
     @unpack kon,koff,konb,reach,CP,antigenconcen,antibodyconcen = bps 
     println(io, summary(bps))
@@ -84,4 +96,3 @@ function SimParams(biopars::BioPhysParams; kwargs...)
     SimParams(biopars.antigenconcen; kwargs...)
 end
 
-#################################
