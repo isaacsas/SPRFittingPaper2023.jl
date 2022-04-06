@@ -48,42 +48,6 @@ biopars = BioPhysParams(; kon, koff, konb, reach)
 # as the antigenconcentration changes
 numpars = SimParams(biopars.antigenconcen[1]; tstop, dt, N, nsims, DIM=2)
 
-# this will be used by the simulator to store output as it goes
-struct Outputter
-    bindcnt::Vector{Float64}
-end
-
-# creat the Outputter via knowing N, where 
-# N = number of time points to save at
-function Outputter(N)
-    Outputter(zeros(N))
-end
-
-# this is called after each individual stochastic simulation to handle
-# processing the counts of each species at each time. here we just cumulatively
-# sum up the amount of A at each time
-@inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)    
-    o.bindcnt .+= @view copynumbers[1,:]
-    nothing
-end
-
-# this is called once all simulations finish, for a given parameter set, to
-# finalize the output. Here we rescale to get a normalized average fraction of 
-# particles in the A state.
-@inline function (o::Outputter)(biopars, numpars)
-    @unpack CP = biopars
-    @unpack N,nsims = numpars
-    o.bindcnt .*= (CP/(N*nsims))
-    nothing
-end
-
-# this is used to reset the output object prior to a new simulations (i.e. with
-# new parameters)
-@inline function (o::Outputter)()
-    o.bindcnt .= 0
-    nothing 
-end
-
 ########### END INTERNAL PARAMETER STRUCTURES ###########
 
 # note currently used and needs updating
@@ -99,7 +63,7 @@ end
 # note that this modifies biopars and numpars!!!
 function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
     numsave = round(Int, numpars.tstop / numpars.dt) + 1
-    outdata = Outputter(numsave)
+    outdata = TotalAOutputter(numsave)
     freeantigensims = zeros(Float64, length(antibodyconcens), numsave)    
     numpars.L = sqrt(numpars.N/antigenconcen)
     biopars.antigenconcen  = antigenconcen
