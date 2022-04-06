@@ -50,10 +50,8 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
     return sqrt(value(L2DistLoss(), vec(e1), vec(refdata_nonan), AggMode.Sum()))
 end
 
-"""
 
-"""
-function fit_spr_data(surrogate, aligneddat, searchrange; 
+function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange; 
                       NumDimensions=5, 
                       Method=:xnes, 
                       MaxSteps=5000, 
@@ -81,7 +79,7 @@ logpars   = vector of the five optimization parameters:
 simpars   = Simparams instance
 outputter = an OutPutter instance for what simulation data to record
 """
-function update_pars_and_run_spr_sim!(outputter, logpars, simpars)
+function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)
     DIM = SPRFitting.getdim(simpars)
     antigenconcen = simpars.N / (simpars.L^DIM)
 
