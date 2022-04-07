@@ -39,7 +39,7 @@ datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, 
                           antibodyconcen=antibodyconcens[1], antigenconcen)
 
-numpars = SimParams(; antigenconcen, N, nsims, DIM=2, 
+simpars = SimParams(; antigenconcen, N, nsims, DIM=2, 
                     resample_initlocs=false, tstop, tstop_AtoB,
                     convert_agc_units=false)
 
@@ -51,16 +51,16 @@ function circleshape(h,k,r)
     h .+ r*sin.(theta), k.+ r*cos.(theta)
 end
 
-function makeplots(biopars, numpars, reach, antibodyconcens)
-    @unpack initlocs,L,N,tstop,dt = numpars
+function makeplots(biopars, simpars, reach, antibodyconcens)
+    @unpack initlocs,L,N,tstop,tsave = simpars
     biopars.reach = reach
-    numsavepts = round(Int, tstop/dt) + 1
+    numsavepts = length(tsave)
     SD = []    
     for (i,antibodyconcen) in enumerate(antibodyconcens)
         println("Running reach = $reach, [antibody] = $antibodyconcen ($i/$(length(antibodyconcens)))")
         biopars.antibodyconcen = antibodyconcen
         output = TotalBoundOutputter(numsavepts)
-        run_spr_sim!(output, biopars, numpars)
+        run_spr_sim!(output, biopars, simpars)
         push!(SD, output.bindcnt)
     end
 
@@ -94,7 +94,7 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
     p1 = plot(circles,fillalpha=.5,seriestype=[:shape,],labels=:none,color=Colors,xlims=(-50,50),ylims=(-50,50),title="reach = $reach nm")
 
     # plots curves
-    X2 = range(0.0, tstop, step=dt)
+    X2 = copy(tsave)
     Y2 = [SD[i] for i in eachindex(antibodyconcens)]
     p2 = plot(X2,Y2,labels=:none,color="black",xlims=(0,tstop),ylims=(0,1))
 
@@ -106,7 +106,7 @@ end
 # run simulations and plot/save data
 p1v = []; p2v = []; Xv = []; Yv = [];
 for (i,reach) in pairs(reaches)
-    p1,p2,X,Y = makeplots(biopars, numpars, reaches[i], antibodyconcens)
+    p1,p2,X,Y = makeplots(biopars, simpars, reaches[i], antibodyconcens)
     push!(p1v,p1); push!(p2v,p2); push!(Xv,X); push!(Yv,Y)
 end
 

@@ -16,7 +16,7 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     CP::T = 1.0
     """Concentration of antigen"""
     antigenconcen::T = 1.0
-    """Concentration of antibodies, should be consistent with kon"""
+    """Concentration of antibodies, should be consistent with kon's units"""
     antibodyconcen::T = 1.0
 end
 
@@ -52,8 +52,8 @@ mutable struct SimParams{T<:Number,DIM}
     tstop::T
     """Time to turn off A --> B reaction"""
     tstop_AtoB::T
-    """How often to save data in time"""
-    dt::T
+    """Times to save data at"""
+    tsave::Vector{T}
     """Domain Length"""
     L::T 
     """Initial Particle Positions"""
@@ -65,12 +65,12 @@ mutable struct SimParams{T<:Number,DIM}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sps::SimParams)   
-    @unpack N,tstop,tstop_AtoB,dt,L,resample_initlocs,nsims = sps 
+    @unpack N,tstop,tstop_AtoB,tsave,L,resample_initlocs,nsims = sps 
     println(io, summary(sps))
     println(io, "number of particles (N) = ", N)
     println(io, "tstop = ", tstop)
     println(io, "tstop_AtoB = ", tstop_AtoB)
-    println(io, "save frequency (dt) = ", dt)
+    println(io, "number of save points = ", length(tsave))
     println(io, "domain length (L) = ", L)
     println(io, "resample_initlocs = ", resample_initlocs)
     print(io, "nsims = ", nsims)
@@ -82,12 +82,15 @@ function SimParams(; antigenconcen=DEFAULT_SIM_ANTIGENCONCEN,
                     tstop=600.0, 
                     tstop_AtoB=Inf, 
                     dt=1.0, 
+                    tsave=nothing,
                     L=nothing, 
                     DIM=3,
                     initlocs=nothing, 
                     resample_initlocs=true,
                     nsims=1000,
                     convert_agc_units=true)
+
+    # convert agc to (nm)⁻³                
     agc = convert_agc_units ? muM_to_inv_cubic_nm(antigenconcen) : antigenconcen
     Lv  = isnothing(L) ? (N / agc)^(1/DIM) : L
     initlocsv = if (initlocs === nothing) 
@@ -95,7 +98,11 @@ function SimParams(; antigenconcen=DEFAULT_SIM_ANTIGENCONCEN,
     else 
          initlocs    
     end
-    SimParams{typeof(tstop),DIM}(N,tstop,tstop_AtoB,dt,Lv,initlocsv,resample_initlocs,nsims)
+
+    # if saving times not given use dt to determine
+    tsavev = (tsave === nothing) ? collect(range(0.0, tstop, step=dt)) : tsave
+
+    SimParams{typeof(tstop),DIM}(N,tstop,tstop_AtoB,tsavev,Lv,initlocsv,resample_initlocs,nsims)
 end
 
 function SimParams(biopars::BioPhysParams; kwargs...)

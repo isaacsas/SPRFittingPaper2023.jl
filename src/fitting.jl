@@ -123,26 +123,25 @@ end
 function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, 
                       filename=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
-    @unpack tstop,dt = simpars
+    @unpack tstop,tsave = simpars
     params = copy(bbopt_output.method_output.population[1].params)
 
     # plot aligned experimental data
-    fig1 = plot(xlabel="time", ylabel="RU")
+    fig1 = plot(xlabel="time", ylabel="RU", legend=false)
     for sprcurve in eachcol(refdata)
-        plot!(fig1, times, sprcurve, label="", color="black")
+        plot!(fig1, times, sprcurve, color="black")
     end
 
     # plot simulation data with fit parameters
-    timepoints = collect(range(0.0, tstop, step=dt))
-    ps         = copy(params)
-    abcref     = antibodyconcens[1]
+    ps     = copy(params)
+    abcref = antibodyconcens[1]
     for abc in antibodyconcens
         # set kon
         ps[1] = params[1] + log10(abc/abcref)
 
-        outputter = TotalBoundOutputter(length(timepoints))
+        outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        plot!(fig1, timepoints, outputter.bindcnt, label="")
+        plot!(fig1, tsave, outputter.bindcnt)
     end
 
     (filename !== nothing) && savefig(fig1, filename)
@@ -154,20 +153,18 @@ end
 # saves data and simulated data in files with basename outfile
 function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
-    @unpack tstop, dt = simpars
+    @unpack tstop, tsave = simpars
 
-    params = copy(bbopt_output.method_output.population[1].params)
+    savedata       = zeros(length(tsave), 2*length(antibodyconcens)+1)
+    savedata[:,1] .= tsave
 
-    timepoints     = collect(range(0.0, tstop, step=dt))
-    savedata       = zeros(length(timepoints), 2*length(antibodyconcens)+1)
-    savedata[:,1] .= timepoints
-    
+    params = copy(bbopt_output.method_output.population[1].params)    
     abcref = antibodyconcens[1]
     ps     = copy(params)
     for (j,abc) in enumerate(antibodyconcens)
         
         # This following is really hacky and needs to be replaced...        
-        # Assign and save the aligned data to match timepoints
+        # Assign and save the aligned data to match tsave
         nstart = Int(times[1])        
         savedata[1:nstart,2*j] .= NaN       
         for n=1:length(times) 
@@ -176,7 +173,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
 
         # Simulate the model and save the averaged kinetics data
         ps[1] = params[1] + log10(abc/abcref)
-        outputter = TotalBoundOutputter(length(timepoints))
+        outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars) 
         savedata[:,2*j+1] .= outputter.bindcnt
     end
@@ -184,10 +181,10 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
     # headers for writing the simulation curves
     EH = ["Experimental Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
     MH = ["Model Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
-    CH = [Z[i] for i=1:length(antibodyconcens) for Z in [EH,MH]]
     headers = ["times"]
-    for h in CH
-        push!(headers,h)
+    for i in eachindex(antibodyconcens)
+        push!(headers, EH[i])
+        push!(headers, MH[i])
     end    
 
     # get parameter fits
@@ -199,36 +196,36 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
     XLSX.openxlsx(fname, mode="w") do xf
         # SPR and fit curves
         sheet = xf[1]
+        XLSX.rename!(sheet, "SPR and Fit Curves")
         sheet[1,1:length(headers)] = headers
         nrows,ncols = size(savedata)
         for j in 1:ncols
             sheet[2:(nrows+1),j] = savedata[:,j]
         end
 
-        nextcol = ncols + 2
-        nextrow = 1
+        # make separate sheet for fit parameter values
+        XLSX.addsheet!(xf, "Fit Parameters")
+        sheet = xf[2]
 
         # internal parameters
         logparnames = ["Best fit parameters (internal):","logkon","logkoff","logkonb","reach","logCP"]
-        cols = nextcol:(nextcol+length(logparnames)-1)
-        sheet[nextrow,cols] = logparnames
-        sheet[nextrow+1,cols] = ["",bs...]
+        rows = 1:length(logparnames)
+        sheet[rows,1] = logparnames
+        sheet[rows,2] = ["",bs...]
 
         # biophysical parameters
         parnames = ["Best fit parameters (physical):","kon","koff","konb","reach","CP"]
-        sheet[nextrow+3,cols] = parnames
+        sheet[rows,4] = parnames
 
         # convert internal simulator concentration from (nm)⁻³ to μM
         simagc = inv_cubic_nm_to_muM(getantigenconcen(simpars))
         pars   = bboptpars_to_physpars(bs, antibodyconcens[1], antigenconcen, simagc)
-        sheet[nextrow+4,cols] = ["",pars...]        
-    end
+        sheet[rows,5] = ["",pars...]        
 
-    ##### save parameters
-    open(outfile*"_Fitted.txt", "w+") do file
-        println(file, last(splitpath(outfile)), "\n")
-        println(file, "Best candidate found (kon, koff, konb, reach, CP): ", bs)
-        println(file, "Fitness: ", bf)
+        # fitness
+        row = last(rows) + 2
+        sheet[row,1] = "Fitness"
+        sheet[row,2] = bf
     end
 
     nothing

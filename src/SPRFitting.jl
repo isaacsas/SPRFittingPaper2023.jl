@@ -6,6 +6,8 @@ using JLD, Interpolations, LossFunctions
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
 using XLSX, Plots
 
+include("utils.jl")
+
 include("parameters.jl")
 export BioPhysParams, SimParams
 

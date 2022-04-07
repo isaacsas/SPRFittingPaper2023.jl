@@ -90,13 +90,12 @@ end
 
 
 function run_spr_sim!(outputter, biopars, numpars)
-    @unpack nsims,N,tstop_AtoB,tstop,dt,L,resample_initlocs = numpars
+    @unpack nsims,N,tstop_AtoB,tstop,tsave,L,resample_initlocs = numpars
 
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
 
     # output 
-    tsave   = collect(range(0.0,tstop,step=dt))
     numsave = length(tsave)
 
     # setup connectivity info

@@ -1,6 +1,6 @@
 using SPRFitting
-using Roots, Interpolations, UnPack
-using Plots, DataFrames, XLSX
+#using Roots, Interpolations
+using Plots, XLSX
 
 ########### PARMETERS TO MODIFY ###########
 
@@ -47,7 +47,7 @@ biopars = BioPhysParams(; kon, koff, konb, reach)
 # this will need to get updated in the code as the domain length changes
 # as the antigenconcentration changes
 # note convert_agc_units=false means we assume agc has units of per area already!
-numpars = SimParams(; antigenconcen=biopars.antigenconcen[1], tstop, dt, N, nsims, 
+simpars = SimParams(; antigenconcen=biopars.antigenconcen[1], tstop, dt, N, nsims, 
                       DIM=2, convert_agc_units=false)
 
 ########### END INTERNAL PARAMETER STRUCTURES ###########
@@ -62,27 +62,27 @@ numpars = SimParams(; antigenconcen=biopars.antigenconcen[1], tstop, dt, N, nsim
 #     return 10^(itp_x(z))    
 # end
 
-# note that this modifies biopars and numpars!!!
-function runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
-    numsave = round(Int, numpars.tstop / numpars.dt) + 1
+# note that this modifies biopars and simpars!!!
+function runpotencysims!(biopars, simpars, antigenconcen, antibodyconcens)
+    numsave = length(simpars.tsave)
     outdata = TotalAOutputter(numsave)
     freeantigensims = zeros(Float64, length(antibodyconcens), numsave)    
-    numpars.L = sqrt(numpars.N/antigenconcen)
+    simpars.L = sqrt(simpars.N/antigenconcen)
     biopars.antigenconcen  = antigenconcen
 
     for (ax,antibodyconcen) in enumerate(antibodyconcens)                
         biopars.antibodyconcen = antibodyconcen            
-        run_spr_sim!(outdata, biopars, numpars)
+        run_spr_sim!(outdata, biopars, simpars)
         freeantigensims[ax,:] = outdata.bindcnt
         outdata()   # reset bindcnt to zero
     end
     return freeantigensims
 end
 
-function varyantigenconcen(biopars, numpars, antigenconcens, antibodyconcens)
+function varyantigenconcen(biopars, simpars, antigenconcens, antibodyconcens)
     freeantigenstore = zeros(Float64,length(antibodyconcens),length(antigenconcens))
     for (ax,antigenconcen) in enumerate(antigenconcens)
-        @time freeantigensims   = runpotencysims!(biopars, numpars, antigenconcen, antibodyconcens)
+        @time freeantigensims   = runpotencysims!(biopars, simpars, antigenconcen, antibodyconcens)
         freeantigenstore[:,ax]  = freeantigensims[:,end]
     end
     return freeantigenstore
@@ -90,7 +90,7 @@ end
 
 ################### ACTUAL SCRIPT TO RUN SIMULATIONS AND PLOT %%%%%%%%%%%%%%%%%%%%%%%%
 
-@time freeantigenstore = varyantigenconcen(biopars, numpars, antigenconcens, antibodyconcens)
+@time freeantigenstore = varyantigenconcen(biopars, simpars, antigenconcens, antibodyconcens)
 
 if plotfigure
     X=[antibodyconcens for antigenconcen in antigenconcens]
@@ -110,8 +110,5 @@ end
 
 if savecsv
     headers = [Symbol("Antigen Concentration $(antigenconcen) nM") for antigenconcen in antigenconcens]
-    df = DataFrame(freeantigenstore,headers)
-
-    # Write the DataFrame to an xlsx file
-    XLSX.writetable(xlsxname,collect(eachcol(df)),names(df); overwrite=true)
+    XLSX.writetable(xlsxname,collect(eachcol(freeantigenstore)),headers, overwrite=true)
 end
