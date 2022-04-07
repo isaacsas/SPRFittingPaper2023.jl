@@ -16,7 +16,9 @@ nsims      = 1000
 
 # A -> B rate in simulation is (kon * antibodyconcens[i])
 antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]  
-antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) with N=250 by default
+
+# this assumes units of (nm)⁻²
+antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) 
 
 # saving and plotting controls
 plotsixpanelplot = true
@@ -37,11 +39,9 @@ datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, 
                           antibodyconcen=antibodyconcens[1], antigenconcen)
 
-# you can pass non-default numerical parameters as keywords to SimParams
-# an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
-# to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; N, nsims, DIM=2, 
-                    resample_initlocs=false, tstop, tstop_AtoB)
+numpars = SimParams(; antigenconcen, N, nsims, DIM=2, 
+                    resample_initlocs=false, tstop, tstop_AtoB,
+                    convert_agc_units=false)
 
 ############### END INTERNAL PARAMETERS ################
 

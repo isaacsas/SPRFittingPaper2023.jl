@@ -4,11 +4,11 @@ using Plots, DataFrames, XLSX
 
 ########### PARMETERS TO MODIFY ###########
 
-antigenconcens  = [0.2*(1/5)^(i) for i in 9:-1:1]
+antigenconcens  = [0.2*(1/5)^(i) for i in 9:-1:1]  # (nm)⁻²
 antibodyconcens = 10.0 .^ range(-2,6,step=8/29)
 
 #FD-11A
-kon = 1.027E-04
+kon = 1.027E-04  # bimolecular rate units, should be consistent with antibodyconcens
 koff = 0.042
 konb =  0.764
 reach = 32.766
@@ -46,7 +46,9 @@ biopars = BioPhysParams(; kon, koff, konb, reach)
 
 # this will need to get updated in the code as the domain length changes
 # as the antigenconcentration changes
-numpars = SimParams(biopars.antigenconcen[1]; tstop, dt, N, nsims, DIM=2)
+# note convert_agc_units=false means we assume agc has units of per area already!
+numpars = SimParams(; antigenconcen=biopars.antigenconcen[1], tstop, dt, N, nsims, 
+                      DIM=2, convert_agc_units=false)
 
 ########### END INTERNAL PARAMETER STRUCTURES ###########
 

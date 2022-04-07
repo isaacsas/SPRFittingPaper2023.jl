@@ -14,17 +14,21 @@ Base.@kwdef mutable struct Surrogate{S,T}
     surrogate_size::S
     """Interpolation of the surrogate lookup table"""
     itp::T
+    """Surrogate's internal antigen concentration in μM"""
+    antigenconcen
 end
 
-function Surrogate(param_ranges::SurrogateRanges, LUTdata::AbstractArray)
+function Surrogate(param_ranges::SurrogateRanges, LUTdata::AbstractArray;
+                   antigenconcen=DEFAULT_SIM_ANTIGENCONCEN)
     surrogatesize = size(LUTdata)
     itp = interpolate(LUTdata, BSpline(Linear()))
-    Surrogate{typeof(surrogatesize),typeof(itp)}(param_ranges, surrogatesize, itp)
+    Surrogate{typeof(surrogatesize),typeof(itp)}(param_ranges, surrogatesize, itp, antigenconcen)
 end
 
-function Surrogate(param_ranges::SurrogateRanges, lutfile::String; rungc=true)
+function Surrogate(param_ranges::SurrogateRanges, lutfile::String; 
+                   antigenconcen=DEFAULT_SIM_ANTIGENCONCEN, rungc=true)
     lutdata = load(lutfile)["FirstMoment"]    
-    surrogate = Surrogate(param_ranges, lutdata)    
+    surrogate = Surrogate(param_ranges, lutdata; antigenconcen)    
 
     # release the lookup table from memory
     if rungc

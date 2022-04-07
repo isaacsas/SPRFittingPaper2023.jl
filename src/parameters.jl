@@ -1,3 +1,7 @@
+# This is the default internal antigen concentration 
+# used in the surrogates and simulations.
+# 125.23622683286348 μM
+const DEFAULT_SIM_ANTIGENCONCEN = 500/149/26795*1000000  
 
 Base.@kwdef mutable struct BioPhysParams{T <: Number}
     """A --> B rate, units of concentration per time"""
@@ -10,9 +14,9 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     reach::T
     """CP factor"""
     CP::T = 1.0
-    """Concentration of antigen"""
+    """Concentration of antigen μM"""
     antigenconcen::T = 1.0
-    """Concentration of antibodies"""
+    """Concentration of antibodies μM"""
     antibodyconcen::T = 1.0
 end
 
@@ -72,18 +76,20 @@ function Base.show(io::IO, ::MIME"text/plain", sps::SimParams)
     print(io, "nsims = ", nsims)
 end
 
-# converts antigen concentration to number of units
-function SimParams(antigenconcen; 
-                   N=1000, 
-                   tstop=600.0, 
-                   tstop_AtoB=Inf, 
-                   dt=1.0, 
-                   L=nothing, 
-                   DIM=3,
-                   initlocs=nothing, 
-                   resample_initlocs=true,
-                   nsims=1000)
-    Lv  = isnothing(L) ? (N / antigenconcen)^(1/DIM) : L
+# assumes antigenconcen is μM
+function SimParams(; antigenconcen=DEFAULT_SIM_ANTIGENCONCEN,
+                    N=1000, 
+                    tstop=600.0, 
+                    tstop_AtoB=Inf, 
+                    dt=1.0, 
+                    L=nothing, 
+                    DIM=3,
+                    initlocs=nothing, 
+                    resample_initlocs=true,
+                    nsims=1000,
+                    convert_agc_units=true)
+    agc = convert_agc_units ? muM_to_inv_cubic_nm(antigenconcen) : antigenconcen
+    Lv  = isnothing(L) ? (N / agc)^(1/DIM) : L
     initlocsv = if (initlocs === nothing) 
         [(Lv .* rand(SVector{DIM,Float64}) .- Lv/2) for _ in 1:N] 
     else 
@@ -96,4 +102,8 @@ function SimParams(biopars::BioPhysParams; kwargs...)
     SimParams(biopars.antigenconcen; kwargs...)
 end
 
+######################## helpful accessors #####################
+
 getdim(simpars::SimParams{T,DIM}) where {T<:Number,DIM} = DIM
+
+getantigenconcen(simpars) = simpars.N / (simpars.L^getdim(simpars))
