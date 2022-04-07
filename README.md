@@ -7,7 +7,7 @@ To install into your main Julia environment
 using Pkg
 Pkg.add(url="https://github.com/isaacsas/SPRFitting.jl.git")
 ```
-It is often better to first create a new environment in the directory where
+It is often better to first create a new, clean environment in the directory where
 you'll have your fitting script. Start Julia in that directory and then
 ```julia
 using Pkg
