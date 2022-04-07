@@ -14,9 +14,9 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     reach::T
     """CP factor"""
     CP::T = 1.0
-    """Concentration of antigen μM"""
+    """Concentration of antigen"""
     antigenconcen::T = 1.0
-    """Concentration of antibodies μM"""
+    """Concentration of antibodies, should be consistent with kon"""
     antibodyconcen::T = 1.0
 end
 
