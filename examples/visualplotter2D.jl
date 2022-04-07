@@ -16,7 +16,9 @@ nsims      = 1000
 
 # A -> B rate in simulation is (kon * antibodyconcens[i])
 antibodyconcens = [9.375,18.75,37.5,75.0,150.0,300.0]  
-antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) with N=250 by default
+
+# this assumes units of (nm)⁻²
+antigenconcen   = 0.0025   # L = sqrt(N/antigenconcen) 
 
 # saving and plotting controls
 plotsixpanelplot = true
@@ -37,35 +39,11 @@ datacsvname      = joinpath(savefolder, "curves_for_bottom_row.csv")
 biopars = BioPhysParams(; kon, koff, konb, reach=reaches[1], CP, 
                           antibodyconcen=antibodyconcens[1], antigenconcen)
 
-# you can pass non-default numerical parameters as keywords to SimParams
-# an example would be SimParams(biopars.antigenconcen; dt=1.0, N=1000)
-# to change dt and N from the defaults, see definition of SimParams.
-numpars = SimParams(biopars.antigenconcen; N, nsims, DIM=2, resample_initlocs=false, tstop, tstop_AtoB)
-
-# this will be used by the simulator to store output as it goes
-struct Outputter
-    bindcnt::Vector{Float64}
-end
-
-# this just sums up the amount of B and C at each time
-@inline function (o::Outputter)(tsave, copynumbers, biopars, numpars)
-    len = size(copynumbers,2)
-    for i in 1:len
-        o.bindcnt[i] += copynumbers[2,i] + copynumbers[3,i]
-    end
-    nothing
-end
-
-# this is called once all simulations finish to finalize the output
-@inline function (o::Outputter)(biopars, numpars)
-    @unpack CP = biopars
-    @unpack N,nsims = numpars
-    o.bindcnt .*= (CP/(N*nsims))
-    nothing
-end
+numpars = SimParams(; antigenconcen, N, nsims, DIM=2, 
+                    resample_initlocs=false, tstop, tstop_AtoB,
+                    convert_agc_units=false)
 
 ############### END INTERNAL PARAMETERS ################
-
 
 ############### plotting code 
 function circleshape(h,k,r)
@@ -81,7 +59,7 @@ function makeplots(biopars, numpars, reach, antibodyconcens)
     for (i,antibodyconcen) in enumerate(antibodyconcens)
         println("Running reach = $reach, [antibody] = $antibodyconcen ($i/$(length(antibodyconcens)))")
         biopars.antibodyconcen = antibodyconcen
-        output = Outputter(zeros(numsavepts))
+        output = TotalBoundOutputter(numsavepts)
         run_spr_sim!(output, biopars, numpars)
         push!(SD, output.bindcnt)
     end
@@ -155,7 +133,7 @@ if saveCSVofcurves
     for (i,reach) in pairs(reaches)
         for (j,abconcen) in pairs(antibodyconcens)
             data[:,idx] .= Yv[i][j]
-            idx += 1
+            global idx += 1
             konpertime = kon * abconcen
             konstr = @sprintf "reach=%2.0f, kon_per_time=%2.5f" reach konpertime
             push!(paramnames, konstr)

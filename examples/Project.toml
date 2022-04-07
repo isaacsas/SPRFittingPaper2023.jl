@@ -1,0 +1,15 @@
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+SPRFitting = "d8a8d3c8-1875-4c31-a7a0-fa97855a07fa"
+XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+
+[compat]
+CSV = "0.10.4"
+DataFrames = "1.3.2"
+Interpolations = "0.13.5"
+Roots = "1.4.0"
+XLSX = "0.7.9"

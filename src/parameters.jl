@@ -1,3 +1,7 @@
+# This is the default internal antigen concentration 
+# used in the surrogates and simulations.
+# 125.23622683286348 μM
+const DEFAULT_SIM_ANTIGENCONCEN = 500/149/26795*1000000  
 
 Base.@kwdef mutable struct BioPhysParams{T <: Number}
     """A --> B rate, units of concentration per time"""
@@ -12,8 +16,20 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     CP::T = 1.0
     """Concentration of antigen"""
     antigenconcen::T = 1.0
-    """Concentration of antibodies"""
+    """Concentration of antibodies, should be consistent with kon"""
     antibodyconcen::T = 1.0
+end
+
+# generate BioPhysParams from a parameter vector from fitting
+# assumes: 
+# p = [log10(kon), log10(koff), log10(konb), reach, log10(CP)] 
+function biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=1.0)
+    kon   = 10^p[1]
+    koff  = 10^p[2]
+    konb  = 10^p[3]
+    reach = p[4]
+    CP    = 10^p[5]
+    BioPhysParams(kon,koff,konb,reach,CP,antigenconcen,antibodyconcen)
 end
 
 function Base.show(io::IO,  ::MIME"text/plain", bps::BioPhysParams)   
@@ -60,18 +76,20 @@ function Base.show(io::IO, ::MIME"text/plain", sps::SimParams)
     print(io, "nsims = ", nsims)
 end
 
-# converts antigen concentration to number of units
-function SimParams(antigenconcen; 
-                   N=1000, 
-                   tstop=600.0, 
-                   tstop_AtoB=Inf, 
-                   dt=1.0, 
-                   L=nothing, 
-                   DIM=3,
-                   initlocs=nothing, 
-                   resample_initlocs=true,
-                   nsims=1000)
-    Lv  = isnothing(L) ? sqrt(N / (antigenconcen)) : L
+# assumes antigenconcen is μM
+function SimParams(; antigenconcen=DEFAULT_SIM_ANTIGENCONCEN,
+                    N=1000, 
+                    tstop=600.0, 
+                    tstop_AtoB=Inf, 
+                    dt=1.0, 
+                    L=nothing, 
+                    DIM=3,
+                    initlocs=nothing, 
+                    resample_initlocs=true,
+                    nsims=1000,
+                    convert_agc_units=true)
+    agc = convert_agc_units ? muM_to_inv_cubic_nm(antigenconcen) : antigenconcen
+    Lv  = isnothing(L) ? (N / agc)^(1/DIM) : L
     initlocsv = if (initlocs === nothing) 
         [(Lv .* rand(SVector{DIM,Float64}) .- Lv/2) for _ in 1:N] 
     else 
@@ -84,4 +102,8 @@ function SimParams(biopars::BioPhysParams; kwargs...)
     SimParams(biopars.antigenconcen; kwargs...)
 end
 
-#################################
+######################## helpful accessors #####################
+
+getdim(simpars::SimParams{T,DIM}) where {T<:Number,DIM} = DIM
+
+getantigenconcen(simpars) = simpars.N / (simpars.L^getdim(simpars))
