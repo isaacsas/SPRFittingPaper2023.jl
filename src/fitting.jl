@@ -86,7 +86,7 @@ parameters from the optimizer.
 Arguments:
 logpars   = vector of the five optimization parameters:
             [logkon,logkoff,logkonb,reach,logCP]
-simpars   = Simparams instance
+simpars   = Simparams instance, should be consistent with the surrogate
 outputter = an OutPutter instance for what simulation data to record
 """
 function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)    
