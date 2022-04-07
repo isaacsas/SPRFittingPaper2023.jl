@@ -65,15 +65,8 @@ simpars = SimParams(; antigenconcen=surrogate_agc,
 #################### INTERNAL PARAMETERS #############################
 
 # the surrogate's parameter ranges (all log space except reach)
-logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, reach_range, logCP_range)
-
-# check optimizer ranges are subset of surrogate ranges
-checkrange(rsur,ropt) = (rsur[1] <= ropt[1] <= ropt[2] <= rsur[2])
-checkrange(logkon_range, logkon_optrange) || error("logkon_range not subset of logkon_optrange")
-checkrange(logkoff_range, logkoff_optrange) || error("logkoff_range not subset of logkoff_optrange")
-checkrange(logkonb_range, logkonb_optrange) || error("logkonb_range not subset of logkonb_optrange")
-checkrange(reach_range, reach_optrange) || error("reach_range not subset of reach_optrange")
-checkrange(logCP_range, logCP_range) || error("logCP_range not subset of logCP_optrange")
+logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, reach_range, 
+                                  logCP_range)
 
 # the optimizer's parameter ranges (all log space except reach)
 optpar_ranges = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
@@ -95,7 +88,7 @@ for file in allfiles
     if occursin(r"^Data_", file) == true
         filename = replace(replace(file,r"^Data_" => "" ), r".csv$" => "")
 
-        # get the alinged SPR data
+        # get the aligned SPR data
         aligneddat = get_aligned_data(joinpath(RAWDIR, file), antigenconcen)
 
         # find the best fit parameters

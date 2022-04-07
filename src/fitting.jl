@@ -1,5 +1,16 @@
 @inline scaletoLUT(par, parmin, sz, width) = (par-parmin)*(sz-1)/width + 1
 
+checkrange(rsur,ropt) = (rsur[1] <= ropt[1] <= ropt[2] <= rsur[2])
+
+function checkranges(optranges, sr::SurrogateRanges)    
+    checkrange(sr.logkon_range, optranges[1]) || error("Optimizer logkon_range not a subset of surrogate logkon_optrange")
+    checkrange(sr.logkoff_range, optranges[2]) || error("Optimizer logkoff_range not subset of surrogate logkoff_optrange")
+    checkrange(sr.logkonb_range, optranges[3]) || error("Optimizer logkonb_range not subset of surrogate logkonb_optrange")
+    checkrange(sr.reach_range, optranges[4]) || error("Optimizer reach_range not subset of surrogate reach_optrange")
+    checkrange(sr.logCP_range, optranges[5]) || error("Optimizer logCP_range not subset of surrogate logCP_optrange")
+    nothing
+end
+
 """
     surrogate_sprdata_error(optpars, surrogate)
 
@@ -58,6 +69,8 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
                       TraceMode=:compact, 
                       TraceInterval=10.0, 
                       kwargs...)
+
+    checkranges(searchrange, surrogate.param_ranges)
 
     # use a closure as bboptimize takes functions of a parameter vector only
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
