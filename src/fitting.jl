@@ -68,6 +68,15 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
 end
 
 
+function bboptpars_to_physpars(bboptpars, antibodyconcen)
+    kon   = (10.0 ^ bboptpars[1]) / antibodyconcen  # make bimolecular
+    koff  = (10.0 ^ bboptpars[2])
+    konb  = (10.0 ^ bboptpars[3])
+    reach = bboptpars[4]                # FIX ME!!!!!!!!!!!!!!
+    CP    = (10.0 ^ bboptpars[5])
+    [kon,koff,konb,reach,CP]
+end
+
 
 """
 Generate the biophysical parameters and run a forward simulation given
@@ -158,23 +167,50 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         savedata[:,2*j+1] .= outputter.bindcnt
     end
 
-    # Create a DataFrame with the columns
-    EH = [Symbol("Experimental Data $(antibodyconcens[j]) nM") for j in 1:length(antibodyconcens)]
-    MH = [Symbol("Model Data $(antibodyconcens[j]) nM") for j in 1:length(antibodyconcens)]
+    # headers for writing the simulation curves
+    EH = ["Experimental Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
+    MH = ["Model Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
     CH = [Z[i] for i=1:length(antibodyconcens) for Z in [EH,MH]]
-    headers = [Symbol("times")]
+    headers = ["times"]
     for h in CH
         push!(headers,h)
     end    
-    df = DataFrame(savedata, headers)
 
-    # Write the DataFrame to an xlsx file
-    XLSX.writetable(outfile*"_Fitted.xlsx", collect(eachcol(df)), names(df), overwrite=true)
-
-    ##### save parameters
+    # get parameter fits
     bs = best_candidate(bbopt_output)
     bf = best_fitness(bbopt_output)
+
+    # Write the fits to a spreadsheet
+    fname = outfile * "_fit.xlsx"
+    #XLSX.writetable(fname, collect(eachcol(savedata)), headers, overwrite=true)
+    XLSX.openxlsx(fname, mode="w") do xf
+        # SPR and fit curves
+        sheet = xf[1]
+        sheet[1,1:length(headers)] = headers
+        nrows,ncols = size(savedata)
+        for j in 1:ncols
+            sheet[2:(nrows+1),j] = savedata[:,j]
+        end
+
+        nextcol = ncols + 2
+        nextrow = 1
+
+        # internal parameters
+        logparnames = ["Best fit parameters (internal):","logkon","logkoff","logkonb","reach","logCP"]
+        cols = nextcol:(nextcol+length(logparnames)-1)
+        sheet[nextrow,cols] = logparnames
+        sheet[nextrow+1,cols] = ["",bs...]
+
+        # biophysical parameters
+        parnames = ["Best fit parameters (physical):","kon","koff","konb","reach","CP"]
+        sheet[nextrow+3,cols] = parnames
+        pars = bboptpars_to_physpars(bs, antibodyconcens[1])
+        sheet[nextrow+4,cols] = ["",pars...]        
+    end
+
+    ##### save parameters
     open(outfile*"_Fitted.txt", "w+") do file
+        println(file, last(splitpath(outfile)), "\n")
         println(file, "Best candidate found (kon, koff, konb, reach, CP): ", bs)
         println(file, "Fitness: ", bf)
     end

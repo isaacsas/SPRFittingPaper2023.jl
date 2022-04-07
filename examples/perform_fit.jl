@@ -92,7 +92,7 @@ for file in allfiles
         bbopt_output = fit_spr_data(surrogate, aligneddat, optpar_ranges)
 
         if visualise
-            figfile = joinpath(OUTDIR, filename * "_Fitted.png")
+            figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
             visualisefit(bbopt_output, aligneddat, simpars, figfile)
         end
         if save_curves

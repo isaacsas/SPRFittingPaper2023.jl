@@ -4,7 +4,7 @@ using DataStructures, DelimitedFiles, Random, StaticArrays
 using UnPack
 using JLD, Interpolations, LossFunctions
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
-using DataFrames, XLSX, Plots
+using XLSX, Plots
 
 include("parameters.jl")
 export BioPhysParams, SimParams
@@ -22,6 +22,6 @@ include("surrogate.jl")
 export SurrogateRanges, Surrogate
 
 include("fitting.jl")
-export surrogate_sprdata_error, fit_spr_data, visualisefit, savefit
+export surrogate_sprdata_error, fit_spr_data, bboptpars_to_physpars, visualisefit, savefit
 
 end
