@@ -4,7 +4,6 @@ Base.@kwdef struct SurrogateRanges
     logkonb_range::Tuple{Float64,Float64}
     """Linear range of reach values"""
     reach_range::Tuple{Float64,Float64}
-    logCP_range::Tuple{Float64,Float64}
 end
 
 Base.@kwdef mutable struct Surrogate{S,T} 

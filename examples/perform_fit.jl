@@ -20,7 +20,6 @@ lutfile = "/Users/isaacsas/Dropbox/Collaborations/Omer Dushek/2022 - Bivalent An
 #lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
 logkon_range = (-3.0,2.0)    
 
-
 # low kon
 #lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
 #logkon_range = (-5.0,-0.0)
@@ -33,7 +32,6 @@ visualise   = true
 logkoff_range = (-4.0, -1.0)
 logkonb_range = (-3.0, 1.5)
 reach_range   = (2.0, 35.0)
-logCP_range   = (1.0, 5.0)
 
 # optimizer parameter ranges (log space except reach)
 #logkon_optrange  = (-5.0, -1.25)  # or -2.5 in old file
@@ -41,7 +39,7 @@ logkon_optrange = (-3.0, -1.25)
 logkoff_optrange = logkoff_range
 logkonb_optrange = (-3.0, 1.0)
 reach_optrange   = reach_range
-logCP_optrange   = logCP_range
+logCP_optrange   = (1.0, 5.0)
 
 # internal surrogate antigen concentration in μM
 # this corresponds to what was used in building the lookup table
@@ -51,7 +49,7 @@ surrogate_agc = SPRFitting.DEFAULT_SIM_ANTIGENCONCEN
 # Note we use the surrogate antigen concentration and not the SPR one. This is
 # because we compare SPR data to forward simulations based on the fitted
 # parameters from the surrogate's lookup table.
-# Really this data should all be recovered from the surrogate.
+# Really this data should all be recovered from the surrogate/SPR data
 simpars = SimParams(; antigenconcen=surrogate_agc,
                       N = 1000,           # number of particles
                       tstop = 600.0,      # time to end simulations
@@ -65,8 +63,7 @@ simpars = SimParams(; antigenconcen=surrogate_agc,
 #################### INTERNAL PARAMETERS #############################
 
 # the surrogate's parameter ranges (all log space except reach)
-logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, reach_range, 
-                                  logCP_range)
+logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, reach_range)
 
 # the optimizer's parameter ranges (all log space except reach)
 optpar_ranges = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]

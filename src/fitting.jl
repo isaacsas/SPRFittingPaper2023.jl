@@ -57,7 +57,6 @@ function checkranges(optranges, sr::SurrogateRanges)
     checkrange(sr.logkoff_range, optranges[2]) || error("Optimizer logkoff_range not subset of surrogate logkoff_optrange")
     checkrange(sr.logkonb_range, optranges[3]) || error("Optimizer logkonb_range not subset of surrogate logkonb_optrange")
     checkrange(sr.reach_range, optranges[4]) || error("Optimizer reach_range not subset of surrogate reach_optrange")
-    checkrange(sr.logCP_range, optranges[5]) || error("Optimizer logCP_range not subset of surrogate logCP_optrange")
     nothing
 end
 
