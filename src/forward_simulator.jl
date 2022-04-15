@@ -1,4 +1,4 @@
-@inline function periodic_dist(pt1, pt2, L) 
+@inline function periodic_dist_sq(pt1, pt2, L) 
     d = 0.0    
     @inbounds for i in eachindex(pt1)
         daxes = abs(pt1[i] - pt2[i])
@@ -51,7 +51,7 @@ function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
     empty!(rpair)
     @inbounds for i = 1:N
         @inbounds for j = (i+1):N
-            sqd = periodic_dist(initlocs[i], initlocs[j], L)
+            sqd = periodic_dist_sq(initlocs[i], initlocs[j], L)
             if sqd <= reachsq
                 push!(rpair, CartesianIndex(i,j))
                 Acnt[i] += 1
@@ -89,8 +89,8 @@ function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
 end
 
 
-function run_spr_sim!(outputter, biopars, numpars)
-    @unpack nsims,N,tstop_AtoB,tstop,tsave,L,resample_initlocs = numpars
+function run_spr_sim!(outputter, biopars, numpars, terminator=NullTerminator())
+    @unpack N,tstop_AtoB,tstop,tsave,L,resample_initlocs = numpars
 
     # don't overwrite the user-provided initlocs
     initlocs = copy(numpars.initlocs)
@@ -113,7 +113,7 @@ function run_spr_sim!(outputter, biopars, numpars)
     times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
 
      # Now we can run the simulation
-    @inbounds for _ in 1:nsims     
+    @inbounds while isnotdone(terminator, biopars, numpars)
 
         # reset simulation specific parameters
         τkon  = 1 / (biopars.kon * biopars.antibodyconcen) # convert to time units
@@ -155,7 +155,7 @@ function run_spr_sim!(outputter, biopars, numpars)
             times = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
         else 
             for (i,tval) in pairs(tvec)
-                update!(times, i, tval)
+                DataStructures.update!(times, i, tval)
             end
         end
         turnoff = false
@@ -345,6 +345,9 @@ function run_spr_sim!(outputter, biopars, numpars)
 
         # save per simulation output
         outputter(tsave, copynumbers, biopars, numpars)
+
+        # update terminator callback
+        update!(terminator, outputter, biopars, numpars)
     end
 
     # post simulation processing of output

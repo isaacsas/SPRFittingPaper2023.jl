@@ -72,7 +72,7 @@ function makeplots(biopars, simpars, reach, antibodyconcens)
         for j in 1:N
             if i==j
             else
-                if SPRFitting.periodic_dist(initlocs[i], initlocs[j], L) < reach^2
+                if SPRFitting.periodic_dist_sq(initlocs[i], initlocs[j], L) < reach^2
                     mono=0
                 end
             end

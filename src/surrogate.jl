@@ -7,7 +7,7 @@ Base.@kwdef struct SurrogateRanges
 end
 
 Base.@kwdef mutable struct Surrogate{S,T} 
-    """Log space ranges for each parameter (lin space for reach)"""
+    """log₁₀ space ranges for each parameter (linear space for reach)"""
     param_ranges::SurrogateRanges
     """Number of points for each coordinate within the surrogate lookup table"""
     surrogate_size::S

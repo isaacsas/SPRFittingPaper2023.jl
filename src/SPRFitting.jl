@@ -1,6 +1,7 @@
 module SPRFitting
 
-using DataStructures, DelimitedFiles, Random, StaticArrays
+using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
+using DelimitedFiles, Random, StaticArrays
 using UnPack
 using JLD, Interpolations, LossFunctions
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
@@ -14,7 +15,7 @@ export BioPhysParams, SimParams
 include("forward_simulator.jl")
 export run_spr_sim!
 
-include("outputters.jl")
+include("callbacks.jl")
 export TotalBoundOutputter, TotalAOutputter
 
 include("spr_data.jl")
