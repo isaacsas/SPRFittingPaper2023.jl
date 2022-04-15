@@ -1,6 +1,5 @@
-using SPRFitting
-using Test
+using SafeTestsets
 
-@testset "SPRFitting.jl" begin
-    # Write your tests here.
+@time begin
+    @time @safetestset "Callbacks" begin include("callbacks.jl") end
 end

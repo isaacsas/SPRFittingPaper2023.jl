@@ -2,28 +2,46 @@
 
 ################ SAVING TOTAL BOUND AT EACH TIME ################
 struct TotalBoundOutputter
+    """Average amount bound"""
     bindcnt::Vector{Float64}
+    """Scaled standard error in amount bound"""
+    bindcntsse::Vector{Float64}
 end
 
 # allows to create
 function TotalBoundOutputter(N::Int) 
-    TotalBoundOutputter(zeros(N))
+    TotalBoundOutputter(zeros(N),zeros(N))
 end
 
 # this just sums up the amount of B and C at each time
 @inline function (o::TotalBoundOutputter)(tsave, copynumbers, biopars, numpars)
-    len = size(copynumbers,2)
-    for i in 1:len
-        o.bindcnt[i] += copynumbers[2,i] + copynumbers[3,i]
+    @unpack CP = biopars
+    @unpack N  = numpars
+
+    @inbounds for i in axes(copynumbers,2)
+        totalbound       = (CP/N) * (copynumbers[2,i] + copynumbers[3,i])
+        o.bindcnt[i]    += totalbound
+        o.bindcntsse[i] += totalbound * totalbound
     end
     nothing
 end
 
 # this is called once all simulations finish to finalize the output
 @inline function (o::TotalBoundOutputter)(biopars, numpars)
-    @unpack CP = biopars
-    @unpack N,nsims = numpars
-    o.bindcnt .*= (CP/(N*nsims))
+    @unpack nsims = numpars
+
+    # mean 
+    o.bindcnt ./= nsims
+
+    # variance
+    @. o.bindcntsse = abs(o.bindcntsse/(nsims-1) - (nsims/(nsims-1))*(o.bindcnt^2))
+
+    # scaled standard error 
+    @. o.bindcntsse = sqrt(o.bindcntsse/nsims) / o.bindcnt
+    for i in eachindex(o.bindcntsse)
+        (o.bindcnt[i] < eps()) && (o.bindcntsse[i] = 0.0)
+    end
+
     nothing
 end
 
@@ -31,6 +49,7 @@ end
 # new parameters)
 @inline function (o::TotalBoundOutputter)()
     o.bindcnt .= 0
+    o.bindcntsse .= 0
     nothing 
 end
 
