@@ -80,26 +80,26 @@ end
 # structures for determining if need more simulations or not
 
 # stops simulations when the desired number of simulations is reached
-mutable struct NullTerminator
+mutable struct SimNumberTerminator
     """How many simulations have been completed"""
     num_completed_sims::Int
 end
 
-NullTerminator() = NullTerminator(0)
+SimNumberTerminator() = SimNumberTerminator(0)
 
 # called before a simulation to see if it should be executed
-@inline function isnotdone(nt::NullTerminator, biopars, numpars)
+@inline function isnotdone(nt::SimNumberTerminator, biopars, numpars)
     nt.num_completed_sims < numpars.nsims
 end
 
-# called after a simulation to update the NullTerminator
-@inline function update!(f::NullTerminator, outputter, biopars, numpars)
+# called after a simulation to update the SimNumberTerminator
+@inline function update!(f::SimNumberTerminator, outputter, biopars, numpars)
     f.num_completed_sims += 1
     nothing 
 end
 
-# called to reset the NullTerminator
-@inline function reset!(f::NullTerminator)
+# called to reset the SimNumberTerminator
+@inline function reset!(f::SimNumberTerminator)
     f.num_completed_sims = 0
     nothing 
 end

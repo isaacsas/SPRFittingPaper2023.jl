@@ -89,7 +89,7 @@ function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
 end
 
 
-function run_spr_sim!(outputter, biopars, numpars, terminator=NullTerminator())
+function run_spr_sim!(outputter, biopars, numpars, terminator=SimNumberTerminator())
     @unpack N,tstop_AtoB,tstop,tsave,L,resample_initlocs = numpars
 
     # don't overwrite the user-provided initlocs
