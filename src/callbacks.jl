@@ -150,7 +150,7 @@ end
 """
 $(TYPEDEF)
 
-Callback that stops simulating (roughly) when the variance in bound antibodies
+Callback that stops simulating when the variance in bound antibodies
 becomes sufficiently small.
 
 # Fields
@@ -158,14 +158,17 @@ $(FIELDS)
 """
 Base.@kwdef mutable struct VarianceTerminator
     """How many simulations have been completed."""
-    num_completed_sims::Int
+    num_completed_sims::Int = 0
     """The tolerance below which to stop simulating (default = .01)."""
-    ssetol::Float64
-    """Current estimate of the SSE (default = Inf)."""
-    cursse::Float64
+    ssetol::Float64 = 0.01
+    """Current estimate of the SSE (default = `Inf`)."""
+    cursse::Float64 = Inf
+    """Minimum number of sims to run (default = 15)."""
+    minsims::Int = 15
+    """Maximum number of sims to run (default = 250)."""
+    maxsims::Int = 250
 end
 
-VarianceTerminator() = VarianceTerminator(0, .01, Inf)
 
 # called before a simulation to see if it should be executed
 @inline function isnotdone(vt::VarianceTerminator, biopars, numpars)
@@ -176,9 +179,9 @@ end
 @inline function update!(vt::VarianceTerminator, outputter, biopars, numpars)
     vt.num_completed_sims += 1
 
-    vt.cursse = if vt.num_completed_sims < 15
+    vt.cursse = if vt.num_completed_sims < vt.minsims
         Inf
-    elseif vt.num_completed_sims > 250
+    elseif vt.num_completed_sims > vt.maxsims
         0.0
     else
         maximum(ouputter.bindcntsse)
