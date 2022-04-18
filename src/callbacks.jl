@@ -112,7 +112,7 @@ end
 
 #################################################################
 
-# structures for determining if need more simulations or not
+# callbacks for determining if need more simulations or not
 
 """
 $(TYPEDEF)
@@ -144,5 +144,52 @@ end
 # called to reset the SimNumberTerminator
 @inline function reset!(f::SimNumberTerminator)
     f.num_completed_sims = 0
+    nothing 
+end
+
+"""
+$(TYPEDEF)
+
+Callback that stops simulating (roughly) when the variance in bound antibodies
+becomes sufficiently small.
+
+# Fields
+$(FIELDS)
+"""
+Base.@kwdef mutable struct VarianceTerminator
+    """How many simulations have been completed."""
+    num_completed_sims::Int
+    """The tolerance below which to stop simulating (default = .01)."""
+    ssetol::Float64
+    """Current estimate of the SSE (default = Inf)."""
+    cursse::Float64
+end
+
+VarianceTerminator() = VarianceTerminator(0, .01, Inf)
+
+# called before a simulation to see if it should be executed
+@inline function isnotdone(vt::VarianceTerminator, biopars, numpars)
+    cursse > ssetol
+end
+
+# called after a simulation to update the VarianceTerminator
+@inline function update!(vt::VarianceTerminator, outputter, biopars, numpars)
+    vt.num_completed_sims += 1
+
+    vt.cursse = if vt.num_completed_sims < 15
+        Inf
+    elseif vt.num_completed_sims > 250
+        0.0
+    else
+        maximum(ouputter.bindcntsse)
+    end    
+
+    nothing 
+end
+
+# called to reset the VarianceTerminator
+@inline function reset!(vt::VarianceTerminator)
+    vt.num_completed_sims = 0
+    vt.cursse = Inf
     nothing 
 end
