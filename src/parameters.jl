@@ -3,6 +3,15 @@
 # 125.23622683286348 μM
 const DEFAULT_SIM_ANTIGENCONCEN = 500/149/26795*1000000  
 
+
+"""
+$(TYPEDEF)
+
+Biophysical parameters to use in forward simulations.
+
+# Fields
+$(FIELDS)
+"""
 Base.@kwdef mutable struct BioPhysParams{T <: Number}
     """A --> B rate, units of concentration per time"""
     kon::T
@@ -20,9 +29,17 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     antibodyconcen::T = 1.0
 end
 
-# generate BioPhysParams from a parameter vector from fitting
-# assumes: 
-# p = [log10(kon), log10(koff), log10(konb), reach, log10(CP)] 
+"""
+    biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=1.0)
+
+Generate a [`BioPhysParams`](@ref) struct from a parameter vector from fitting.
+
+Notes: 
+- Assumed that 
+    ``
+    p = [\\log_{10}(\\text{kon}), \\log_{10}(\\text{koff}), \\log_{10}(\\text{kon}_{\\text{b}}), \\text{reach}, \\log_{10}(\\text{CP})] 
+    ``
+"""
 function biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=1.0)
     kon   = 10^p[1]
     koff  = 10^p[2]
@@ -44,23 +61,50 @@ function Base.show(io::IO,  ::MIME"text/plain", bps::BioPhysParams)
     print(io, "[antibody] = ", antibodyconcen)
 end
 
-# Note the following depends on antigen concentration to set L, so needs to be recalculated if it changes!
+
+"""
+$(TYPEDEF)
+
+Biophysical parameters to use in forward simulations.
+
+# Fields
+$(FIELDS)
+
+Keyword Arguments:
+- All fields have a corresponding kwarg.
+- `antigenconcen = DEFAULT_SIM_ANTIGENCONCEN`, the default antigenconcen in
+  units of (nm)⁻³ (unless using `convert_agc_units=false`).
+- `DIM = 3` the dimension of the underlying space (i.e. 2 or 3). 
+- `convert_agc_units = true`, set to false to disable the conversion of the
+  antigen units from assumed units of μM to (nm)⁻³, see below. In this case
+  ``L`` is calculated using the antigen concentration value directly. 
+- `resample_initlocs = true`, if set to false `initlocs` will be constant,
+  simply reusing the initial value sampled in the `SimParams` constructor.
+
+Notes:
+- Uses the antigen concentration to determine ``L``, and so needs to be updated
+  if this concentration changes. The antigen concentration is first converted
+  from assumed units of  μM to units of (nm)⁻³. Then 
+  ```math
+    L = \\left(\\frac{N}{[\\text{antigen}] \\text{ in (nm)}^{-3}}\\right)^{\\tfrac{1}{DIM}}
+  ```
+"""
 mutable struct SimParams{T<:Number,DIM}
-    """Number of particles"""
+    """Number of particles (default `= 1000`)"""
     N::Int
-    """Time to end simulations at"""
+    """Time to end simulations at (default `= 600.0`)"""
     tstop::T
-    """Time to turn off A --> B reaction"""
+    """Time to turn off A --> B reaction, i.e. time the antibody bath is removed. (default `= Inf`)"""
     tstop_AtoB::T
-    """Times to save data at"""
+    """Times to save data at (default = `nothing`)"""
     tsave::Vector{T}
     """Domain Length"""
     L::T 
-    """Initial Particle Positions"""
+    """Initial Particle Positions (default = uniform in ``[-L/2,L/2]^{\\text{DIM}}``)"""
     initlocs::Vector{SVector{DIM,Float64}}
-    """Resample initlocs every simulation"""
+    """Resample `initlocs` every simulation (default `= true`)"""
     resample_initlocs::Bool
-    """Number of simulations in runsim (to control sampling error)"""
+    """Number of simulations in runsim (to control sampling error) (default `= 1000`)"""
     nsims::Int
 end
 

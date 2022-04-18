@@ -1,8 +1,17 @@
 # structures for saving outputs:
 
 ################ SAVING TOTAL BOUND AT EACH TIME ################
+"""
+$(TYPEDEF)
+
+Callback that saves the amount of bound antibodies (i.e. monovalently +
+bivalently bound) at each save time.
+
+# Fields
+$(FIELDS)
+"""
 struct TotalBoundOutputter
-    """Average amount bound"""
+    """Amount bound"""
     bindcnt::Vector{Float64}
     """Scaled standard error in amount bound"""
     bindcntsse::Vector{Float64}
@@ -58,7 +67,14 @@ end
 
 ############ SAVING TOTAL AMOUNT OF A AT EACH TIME #############
 
-# this will be used by the simulator to store output as it goes
+"""
+$(TYPEDEF)
+
+Callback that saves the amount of unbound antigen at each save time.
+
+# Fields
+$(FIELDS)
+"""
 struct TotalAOutputter
     bindcnt::Vector{Float64}
 end
@@ -98,7 +114,15 @@ end
 
 # structures for determining if need more simulations or not
 
-# stops simulations when the desired number of simulations is reached
+"""
+$(TYPEDEF)
+
+Callback that stops simulating when the desired number of simulations is
+reached.
+
+# Fields
+$(FIELDS)
+"""
 mutable struct SimNumberTerminator
     """How many simulations have been completed"""
     num_completed_sims::Int

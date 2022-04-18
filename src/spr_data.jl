@@ -1,3 +1,11 @@
+"""
+$(TYPEDEF)
+
+The aligned data from a set of SPR experiments varying antibody concentrations.
+
+# Fields
+$(FIELDS)
+"""
 Base.@kwdef struct AlignedData
     """Times SPR data is defined at"""
     times::Vector{Float64}
@@ -16,6 +24,10 @@ end
 
 Read the given CSV file representing aligned SPR data. Returns an `AlignedData`
 structure storing the given SPR experiment data.
+
+Notes:
+- `antigenconcen = ` the concentration of antigen used in the experiments in
+  units of μM.
 """
 function get_aligned_data(fname, antigenconcen)
 

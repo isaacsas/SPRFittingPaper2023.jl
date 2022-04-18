@@ -34,9 +34,9 @@ flip(r) = CartesianIndex(r[2],r[1])
 # setup molecule initial positions, and then
 # for each molecule calculate neighbors within reach
 # also setup the reaction index labelling 
-function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
+function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, simpars) where {DIM}
     @unpack reach = biopars
-    @unpack N,L,resample_initlocs = numpars
+    @unpack N,L,resample_initlocs = simpars
     @unpack nhbrs,rxids,rpair,initlocs,Acnt,next = nhbrpars
 
     if resample_initlocs
@@ -88,19 +88,32 @@ function setup_spr_sim!(nhbrpars::NhbrParams{DIM}, biopars, numpars) where {DIM}
     nothing
 end
 
+"""
+    run_spr_sim!(outputter, biopars::BioPhysParams, simpars::SimParams, 
+                 terminator = SimNumberTerminator())
 
-function run_spr_sim!(outputter, biopars, numpars, terminator=SimNumberTerminator())
-    @unpack N,tstop_AtoB,tstop,tsave,L,resample_initlocs = numpars
+Runs a set of SPR simulations via the particle model for a fixed set of physical
+parameters.
+
+Notes:
+- Use the passed [`BioPhysParams`](@ref) and [`SimParams`](@ref) to set
+  simulation parameters (including number of simulations).
+- Use the `outputter` to specify a callback controlling what data is saved.
+- Use the `terminator` to specify a callback controlling when the simulation is
+  stopped.
+"""
+function run_spr_sim!(outputter, biopars::BioPhysParams, simpars::SimParams, terminator=SimNumberTerminator())
+    @unpack N,tstop_AtoB,tstop,tsave,L,resample_initlocs = simpars
 
     # don't overwrite the user-provided initlocs
-    initlocs = copy(numpars.initlocs)
+    initlocs = copy(simpars.initlocs)
 
     # output 
     numsave = length(tsave)
 
     # setup connectivity info
     nhbrpars = NhbrParams(initlocs)
-    setup_spr_sim!(nhbrpars, biopars, numpars)
+    setup_spr_sim!(nhbrpars, biopars, simpars)
     @unpack rpair,nhbrs,rxids = nhbrpars
     numpairs     = length(rpair)
     halfnumpairs = numpairs ÷ 2
@@ -113,7 +126,7 @@ function run_spr_sim!(outputter, biopars, numpars, terminator=SimNumberTerminato
     times       = MutableBinaryHeap{Float64, DataStructures.FasterForward}(tvec)   
 
      # Now we can run the simulation
-    @inbounds while isnotdone(terminator, biopars, numpars)
+    @inbounds while isnotdone(terminator, biopars, simpars)
 
         # reset simulation specific parameters
         τkon  = 1 / (biopars.kon * biopars.antibodyconcen) # convert to time units
@@ -123,7 +136,7 @@ function run_spr_sim!(outputter, biopars, numpars, terminator=SimNumberTerminato
 
         # reset initial positions and nhbrs since connectivity changes        
         if resample_initlocs
-            setup_spr_sim!(nhbrpars, biopars, numpars)
+            setup_spr_sim!(nhbrpars, biopars, simpars)
             numpairs = length(rpair)
             halfnumpairs = numpairs ÷ 2
         end
@@ -344,13 +357,13 @@ function run_spr_sim!(outputter, biopars, numpars, terminator=SimNumberTerminato
         end
 
         # save per simulation output
-        outputter(tsave, copynumbers, biopars, numpars)
+        outputter(tsave, copynumbers, biopars, simpars)
 
         # update terminator callback
-        update!(terminator, outputter, biopars, numpars)
+        update!(terminator, outputter, biopars, simpars)
     end
 
     # post simulation processing of output
-    outputter(biopars, numpars)
+    outputter(biopars, simpars)
     nothing
 end

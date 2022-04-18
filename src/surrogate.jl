@@ -1,26 +1,53 @@
+"""
+$(TYPEDEF)
+
+Ranges of parameters used in the surrogate.
+
+# Fields
+$(FIELDS)
+"""
 Base.@kwdef struct SurrogateRanges
+    """log₁₀ space range of `kon`."""
     logkon_range::Tuple{Float64,Float64}
+    """log₁₀ space range of `koff`."""
     logkoff_range::Tuple{Float64,Float64}
+    """log₁₀ space range of `konb`."""
     logkonb_range::Tuple{Float64,Float64}
-    """Linear range of reach values"""
+    """linear range of reach values"""
     reach_range::Tuple{Float64,Float64}
 end
 
+"""
+$(TYPEDEF)
+
+Surrogate parameters and data.
+
+# Fields
+$(FIELDS)
+
+Keyword Arguments:
+- `param_ranges = ` a [`SurrogateRanges`](@ref) defining the parameter ranges.
+- `lutfile = ` the name of the file storing a surrogate to load.
+- `lutdata = ` `AbstractArray` representing the raw data points to build the
+  surrogate from.
+- `antigenconcen = DEFAULT_SIM_ANTIGENCONCEN` the surrogate's internal antigen
+  concentration.
+"""
 Base.@kwdef mutable struct Surrogate{S,T} 
-    """log₁₀ space ranges for each parameter (linear space for reach)"""
+    """[`SurrogateRanges`](@ref) representing ranges for each parameter."""
     param_ranges::SurrogateRanges
-    """Number of points for each coordinate within the surrogate lookup table"""
+    """Number of points for each coordinate within the surrogate lookup table."""
     surrogate_size::S
-    """Interpolation of the surrogate lookup table"""
+    """Interpolation of the surrogate lookup table."""
     itp::T
-    """Surrogate's internal antigen concentration in μM"""
+    """Surrogate's internal antigen concentration in μM."""
     antigenconcen
 end
 
-function Surrogate(param_ranges::SurrogateRanges, LUTdata::AbstractArray;
+function Surrogate(param_ranges::SurrogateRanges, lutdata::AbstractArray;
                    antigenconcen=DEFAULT_SIM_ANTIGENCONCEN)
-    surrogatesize = size(LUTdata)
-    itp = interpolate(LUTdata, BSpline(Linear()))
+    surrogatesize = size(lutdata)
+    itp = interpolate(lutdata, BSpline(Linear()))
     Surrogate{typeof(surrogatesize),typeof(itp)}(param_ranges, surrogatesize, itp, antigenconcen)
 end
 

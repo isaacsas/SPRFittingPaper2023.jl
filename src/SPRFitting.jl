@@ -1,5 +1,6 @@
 module SPRFitting
 
+using DocStringExtensions
 using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
 using DelimitedFiles, Random, StaticArrays
 using UnPack
@@ -25,6 +26,6 @@ include("surrogate.jl")
 export SurrogateRanges, Surrogate
 
 include("fitting.jl")
-export surrogate_sprdata_error, fit_spr_data, bboptpars_to_physpars, visualisefit, savefit
+export fit_spr_data, bboptpars_to_physpars, visualisefit, savefit
 
 end

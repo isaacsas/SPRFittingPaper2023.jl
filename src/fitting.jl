@@ -1,15 +1,12 @@
 @inline scaletoLUT(par, parmin, sz, width) = (par-parmin)*(sz-1)/width + 1
 
 """
-    surrogate_sprdata_error(optpars, surrogate)
+    surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::AlignedData)
 
-This function takes a set of parameters and interpolates a simulated kinetics
-curve from the Look Up Table that we made in Tutorial 1, and then calculates the
-error between the interpolated curve and the experimental data using a sum of
-squares.
+This function takes a set of optimization parameters and interpolates a
+simulated kinetics curve from the surrogate, returning the ``L^2`` error against
+the provided data.
 
-Arguments:
-`optpars` -  
 """
 function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::AlignedData)
     surranges = surrogate.param_ranges
@@ -60,6 +57,22 @@ function checkranges(optranges, sr::SurrogateRanges)
     nothing
 end
 
+"""
+    fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange; 
+                        NumDimensions=5, 
+                        Method=:xnes, 
+                        MaxSteps=5000, 
+                        TraceMode=:compact, 
+                        TraceInterval=10.0, 
+                        kwargs...)
+
+Find best fit parameters of the surrogate to the given data.
+
+Notes:
+- `searchrange` should be a BlackBoxOptim compatible vector of `Pair`s.
+- Uses `xnes` from BlackBoxOptim by default. 
+- kwargs are passed through to the optimizer.
+"""
 function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange; 
                       NumDimensions=5, 
                       Method=:xnes, 
@@ -78,7 +91,23 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
                          TraceMode, TraceInterval, kwargs...) #,Tracer=:silent)
 end
 
-# note this requires concentrations to be per volume!!!
+"""
+    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen, 
+                                surrogate_antigenconcen)
+
+Converts parameters vector from BlackBoxOptim to physical parameters, converting
+the reach from simulation to physical values.
+
+Notes:
+- The reach is converted from the internal parameter value, εᵢ, to the physical
+  value, εₑ, via
+  ```math
+    \\varepsilon_e = \\varepsilon_i \\left(\\frac{[AGC]_i}{[AGC]_e}\\right)^{\\tfrac{1}{3}},
+  ```
+  where ``[AGC]_i`` is the internal simulator's antigen concentration and
+  ``[AGC]_e`` is the concentration used in experiments. 
+- Assumes these two concentrations have consistent units.
+"""
 function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen, 
                                surrogate_antigenconcen)
     kon   = (10.0 ^ bboptpars[1]) / antibodyconcen  # make bimolecular
@@ -91,14 +120,16 @@ end
 
 
 """
+    update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)    
+
 Generate the biophysical parameters and run a forward simulation given
 parameters from the optimizer.
 
 Arguments:
+outputter = an OutPutter instance for what simulation data to record
 logpars   = vector of the five optimization parameters:
             [logkon,logkoff,logkonb,reach,logCP]
 simpars   = Simparams instance, should be consistent with the surrogate
-outputter = an OutPutter instance for what simulation data to record
 """
 function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)    
     # get antigen concentration for use in simulations
@@ -117,8 +148,15 @@ function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)
     nothing
 end
 
-# plots data and simulated curves and saves it in filename
-# returns figure
+"""
+    visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, 
+                        filename=nothing)
+
+Plots fit between data and simulated curves using fitted parameters.
+
+Notes:
+- `filename = nothing` if set will cause the graph to be saved.
+"""
 function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, 
                       filename=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
@@ -149,7 +187,12 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
 end
 
 
-# saves data and simulated data in files with basename outfile
+"""
+    savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
+
+Saves the data, simulated data with fit parameters, and fit parameters in an
+XLSX spreadsheet with the given name.
+"""
 function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
     @unpack tstop, tsave = simpars
