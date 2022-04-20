@@ -32,7 +32,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
     refabc = antibodyconcens[1]
     for (j,abc) in enumerate(antibodyconcens)
 
-        # rescale the on rate to account for changing concentraions of antibody
+        # rescale the on rate to account for changing concentrations of antibody
         logkon = optpars[1] + log10(abc / refabc) 
         q1     = scaletoLUT(logkon, surranges.logkon_range[1], sursize[1], dq1)
         

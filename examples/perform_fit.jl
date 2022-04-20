@@ -69,7 +69,7 @@ logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, re
 optpar_ranges = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
 
 # build the surrogate, use the same antigenconcentration as the lookup table
-surrogate = Surrogate(logpar_ranges, lutfile; antigenconcen = surrogate_agc)
+surrogate = Surrogate(lutfile; param_ranges=logpar_ranges, antigenconcen=surrogate_agc, simpars)
 
 ################## END INTERNAL PARAMETERS ############################
 
