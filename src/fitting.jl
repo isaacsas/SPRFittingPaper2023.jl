@@ -179,7 +179,7 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
 
         outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        plot!(fig1, tsave, outputter.bindcnt)
+        plot!(fig1, tsave, means(outputter))
     end
 
     (filename !== nothing) && savefig(fig1, filename)
@@ -218,7 +218,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         ps[1] = params[1] + log10(abc/abcref)
         outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars) 
-        savedata[:,2*j+1] .= outputter.bindcnt
+        savedata[:,2*j+1] .= means(outputter)
     end
 
     # headers for writing the simulation curves

@@ -3,6 +3,7 @@ module SPRFitting
 using DocStringExtensions
 using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
 using DelimitedFiles, Random, StaticArrays
+using OnlineStats: Mean, Variance, mean, var, std, nobs, fit!
 using UnPack
 using JLD, Interpolations, LossFunctions
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
@@ -17,7 +18,7 @@ include("forward_simulator.jl")
 export run_spr_sim!
 
 include("callbacks.jl")
-export TotalBoundOutputter, TotalAOutputter
+export TotalBoundOutputter, TotalAOutputter, means, vars, sems
 
 include("spr_data.jl")
 export AlignedData, get_aligned_data
