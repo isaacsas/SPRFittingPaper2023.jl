@@ -57,6 +57,8 @@ function SurrogateParams(param_ranges::SurrogateRanges; numkon, numkoff, numkonb
 
     SurrogateParams(; logkonvec, logkoffvec, logkonbvec, reachvec, kwargs...)
 end
+
+
 """
 $(TYPEDEF)
 
