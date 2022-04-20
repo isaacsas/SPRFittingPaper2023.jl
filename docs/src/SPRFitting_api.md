@@ -18,6 +18,7 @@ run_spr_sim!
 TotalBoundOutputter
 TotalAOutputter
 SimNumberTerminator
+VarianceTerminator
 ```
 
 ## Alignment of SPR Data
@@ -43,3 +44,9 @@ savefit
 visualisefit
 ```
 
+# Private API Functions
+
+```@docs
+surrogate_sprdata_error 
+update_pars_and_run_spr_sim!
+```

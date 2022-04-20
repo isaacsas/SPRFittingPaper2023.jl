@@ -64,3 +64,4 @@ function Surrogate(param_ranges::SurrogateRanges, lutfile::String;
 
     surrogate
 end
+

@@ -126,14 +126,14 @@ Generate the biophysical parameters and run a forward simulation given
 parameters from the optimizer.
 
 Arguments:
-outputter = an OutPutter instance for what simulation data to record
-logpars   = vector of the five optimization parameters:
-            [logkon,logkoff,logkonb,reach,logCP]
-simpars   = Simparams instance, should be consistent with the surrogate
+- outputter = an OutPutter instance for what simulation data to record
+- logpars   = vector of the five optimization parameters:
+              [logkon,logkoff,logkonb,reach,logCP]
+- simpars   = [`SimParams`](@ref) instance, should be consistent with the
+              surrogate
 """
 function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)    
-    # get antigen concentration for use in simulations
-    # and convert to μM
+    # get antigen concentration used in simulations and convert to μM
     antigenconcen = inv_cubic_nm_to_muM(getantigenconcen(simpars))
     
     # we already account for the antibody concentration in kon, so set it to 1.0
@@ -152,7 +152,8 @@ end
     visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, 
                         filename=nothing)
 
-Plots fit between data and simulated curves using fitted parameters.
+Plots fit between data and simulated curves using fitted parameters across a set
+of antibody concentrations.
 
 Notes:
 - `filename = nothing` if set will cause the graph to be saved.
@@ -178,7 +179,7 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
 
         outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        plot!(fig1, tsave, outputter.bindcnt)
+        plot!(fig1, tsave, means(outputter))
     end
 
     (filename !== nothing) && savefig(fig1, filename)
@@ -217,7 +218,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         ps[1] = params[1] + log10(abc/abcref)
         outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars) 
-        savedata[:,2*j+1] .= outputter.bindcnt
+        savedata[:,2*j+1] .= means(outputter)
     end
 
     # headers for writing the simulation curves
