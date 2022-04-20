@@ -190,7 +190,6 @@ end
 
 # called to reset the VarianceTerminator
 @inline function reset!(vt::VarianceTerminator)
-    vt.num_completed_sims = 0
-    vt.cursse = Inf
+    vt.notdone = true
     nothing 
 end
