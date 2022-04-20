@@ -67,11 +67,13 @@ Surrogate parameters and data.
 # Fields
 $(FIELDS)
 
-Keyword Arguments:
-- `param_ranges = ` a [`SurrogateRanges`](@ref) defining the parameter ranges.
+Arguments (one of the two):
 - `lutfile = ` the name of the file storing a surrogate to load.
 - `lutdata = ` `AbstractArray` representing the raw data points to build the
   surrogate from.
+
+Keyword Arguments:
+- `param_ranges = ` a [`SurrogateRanges`](@ref) defining the parameter ranges.
 - `antigenconcen = DEFAULT_SIM_ANTIGENCONCEN` the surrogate's internal antigen
   concentration.
 """
