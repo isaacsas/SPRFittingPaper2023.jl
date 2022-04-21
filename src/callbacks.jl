@@ -46,13 +46,37 @@ end
     nothing 
 end
 
-"""Vector of means"""
+"""
+    means(o::TotalBoundOutputter)
+    
+Vector of means.
+"""
 means(o::TotalBoundOutputter) = mean.(o.bindcnt)
 
-"""Vector of variances"""
+"""
+    means!(m, o::TotalBoundOutputter)
+    
+In-place vector of means.
+"""
+function means!(m, o::TotalBoundOutputter) 
+    for i in enumerate(m)
+        m[i] = mean(o.bindcnt[i])
+    end
+    nothing
+end
+
+"""
+    vars(o::TotalBoundOutputter)
+    
+Vector of variances.
+"""
 vars(o::TotalBoundOutputter) = var.(o.bindcnt)
 
-"""Vector of standard errors"""
+"""
+    means(o::TotalBoundOutputter)
+    
+Vector of standard errors.
+"""
 sems(o::TotalBoundOutputter) = [std(m)/sqrt(nobs(m)) for m in o.bindcnt]
 
 
@@ -105,7 +129,11 @@ end
     nothing 
 end
 
-"Vector of means"
+"""
+    means(o::TotalAOutputter)
+    
+Vector of means.
+"""
 means(o::TotalAOutputter) = mean.(o.bindcnt)
 
 #################################################################

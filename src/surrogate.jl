@@ -91,7 +91,66 @@ function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing
 end
 
 
-# function build_surrogate(pars::SurrogateParams, biopars, simpars)
+"""
+    build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+                           terminator=VarianceTerminator())
 
-# end
+Creates a new surrogate varying kon, koff, konb and reach uniformly in log
+space.
+
+Arguments:
+- `surrogate_size = ` a Tuple with `(nkon,nkoff,nkonb,nreach)` points to use.
+- `surpars = ` the physical parameters to use in the surrogate. It is strongly
+  recommended to not change the default values of `antigenconcen`,
+  `antibodyconcen`, or `CP` unless you really know what you are doing --  these
+  default values are implicitly assumed in other places.
+- `simpars = ` the simulation parameters to use (number of particles,
+  simulations, domain size, etc).
+
+Keyword Arguments:
+- `terminator`, can be used to alter how the number of samples for each
+  parameter set is determined. See [`VarianceTerminator`](@ref) for the default
+  values.
+"""
+function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+                                terminator=VarianceTerminator())
+    @assert surrogate_size[end] == length(simpars.tsave)
+
+    # reach of parameters we vary
+    logkons  = range(surpars.logkon_range[1], surpars.logkon_range[2], length=surrogate_size[1])
+    logkoffs = range(surpars.logkoff_range[1], surpars.logkoff_range[2], length=surrogate_size[2])
+    logkonbs = range(surpars.logkonb_range[1], surpars.logkonb_range[2], length=surrogate_size[3])
+    reachs   = range(surpars.reach_range[1], surpars.reach_range[2], length=surrogate_size[4])    
+    biopars  = BioPhysParams(; kon=0.0, koff=0.0, konb=0.0, reach=0.0)
+    
+    # output from simulations
+    tbo      = TotalBoundOutputter(length(simpars.tsave))
+    surmeans = zeros(surrogate_size)
+    
+    # run and save the simulation results 
+    for (i4,reach) in enumerate(reachs)
+        biopars.reach = reach 
+
+        for (i3,logkonb) in enumerate(logkonbs)
+            biopars.konb = 10.0^logkonb
+
+            for (i2,logkoff) in enumerate(logkoffs)
+                biopars.koff = 10.0^logkoff
+
+                for (i1,logkon) in enumerate(logkons)
+                    biopars.kon = 10.0^logkon
+                    
+                    run_spr_sim!(tbo, biopars, simpars, terminator)
+                    means!(view(surmeans,i1,i2,i3,i4,:), tbo)
+
+                    # reset outputter and terminator
+                    tbo()                                    
+                    reset!(terminator)
+                end
+            end
+        end
+    end
+
+    Surrogate(surrogate_size, surmeans, surpars, simpars)
+end
 
