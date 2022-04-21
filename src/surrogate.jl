@@ -1,21 +1,28 @@
 """
 $(TYPEDEF)
 
-Ranges of parameters used in the surrogate.
+Biophysical parameters used in the surrogate.
 
 # Fields
 $(FIELDS)
 """
-Base.@kwdef struct SurrogateRanges
+Base.@kwdef struct SurrogateParams{T <: Number}
     """log₁₀ space range of `kon`."""
-    logkon_range::Tuple{Float64,Float64}
+    logkon_range::Tuple{T,T}
     """log₁₀ space range of `koff`."""
-    logkoff_range::Tuple{Float64,Float64}
+    logkoff_range::Tuple{T,T}
     """log₁₀ space range of `konb`."""
-    logkonb_range::Tuple{Float64,Float64}
+    logkonb_range::Tuple{T,T}
     """linear range of reach values"""
-    reach_range::Tuple{Float64,Float64}
+    reach_range::Tuple{T,T}
+    """Surrogate's internal antigen concentration in μM (default is `DEFAULT_SIM_ANTIGENCONCEN`)."""
+    antigenconcen::T = DEFAULT_SIM_ANTIGENCONCEN
+    """Surrogate's intenral antibody concentration in μM (default is 1.0)."""
+    antibodyconcen::T = 1.0
+    """Surrogate's internal CP value (default is 1.0)"""
+    CP::T = 1.0
 end
+
 
 """
 $(TYPEDEF)
@@ -25,36 +32,54 @@ Surrogate parameters and data.
 # Fields
 $(FIELDS)
 
-Keyword Arguments:
-- `param_ranges = ` a [`SurrogateRanges`](@ref) defining the parameter ranges.
+Arguments (one of the following two):
 - `lutfile = ` the name of the file storing a surrogate to load.
 - `lutdata = ` `AbstractArray` representing the raw data points to build the
   surrogate from.
-- `antigenconcen = DEFAULT_SIM_ANTIGENCONCEN` the surrogate's internal antigen
-  concentration.
+
+Notes:
+- All fields can also be passed as a keyword arg.
 """
-Base.@kwdef mutable struct Surrogate{S,T} 
-    """[`SurrogateRanges`](@ref) representing ranges for each parameter."""
-    param_ranges::SurrogateRanges
+Base.@kwdef mutable struct Surrogate{S,T,U,V,W}
     """Number of points for each coordinate within the surrogate lookup table."""
     surrogate_size::S
     """Interpolation of the surrogate lookup table."""
     itp::T
-    """Surrogate's internal antigen concentration in μM."""
-    antigenconcen
+    """[`SurrogateParams`](@ref) used in the surrogate."""
+    surpars::SurrogateParams{U}
+    """Simulation parameters used in the surrogate."""
+    simpars::SimParams{V,W}
 end
 
-function Surrogate(param_ranges::SurrogateRanges, lutdata::AbstractArray;
-                   antigenconcen=DEFAULT_SIM_ANTIGENCONCEN)
-    surrogatesize = size(lutdata)
+function Surrogate(lutdata::AbstractArray; surpars, simpars)
+    surrogate_size = size(lutdata)
     itp = interpolate(lutdata, BSpline(Linear()))
-    Surrogate{typeof(surrogatesize),typeof(itp)}(param_ranges, surrogatesize, itp, antigenconcen)
+    Surrogate(; surrogate_size, itp, surpars, simpars)
 end
 
-function Surrogate(param_ranges::SurrogateRanges, lutfile::String; 
-                   antigenconcen=DEFAULT_SIM_ANTIGENCONCEN, rungc=true)
-    lutdata = load(lutfile)["FirstMoment"]    
-    surrogate = Surrogate(param_ranges, lutdata; antigenconcen)    
+function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing)
+    lutdata = load(lutfile)
+    itpdata = lutdata["FirstMoment"]
+
+    if surpars === nothing
+        fs = fieldnames(SurrogateParams)
+        all(f -> haskey(lutdata, string(f)), fs) || error("Not all SurrogateParams fields are in the surrogate file.")
+        kwargs   = NamedTuple(f => lutdata[string(f)] for f in fs)
+        surpars′ = SurrogateParams(; kwargs...)
+    else
+        surpars′ = surpars
+    end
+
+    if simpars === nothing
+        fs = (:N,:tstop,:tstop_AtoB,:tsave,:L,:DIM)
+        all(f -> haskey(lutdata, string(f)), fs) || error("Not all needed SimParams fields are in the surrogate file.")
+        kwargs   = NamedTuple(f => lutdata[string(f)] for f in fs)
+        simpars′ = SimParams(; antigenconcen=surpars′.antigenconcen, kwargs...)
+    else
+        simpars′ = simpars
+    end
+
+    surrogate = Surrogate(itpdata; surpars=surpars′, simpars=simpars′)
 
     # release the lookup table from memory
     if rungc
@@ -63,5 +88,69 @@ function Surrogate(param_ranges::SurrogateRanges, lutfile::String;
     end
 
     surrogate
+end
+
+
+"""
+    build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+                           terminator=VarianceTerminator())
+
+Creates a new surrogate varying kon, koff, konb and reach uniformly in log
+space.
+
+Arguments:
+- `surrogate_size = ` a Tuple with `(nkon,nkoff,nkonb,nreach)` points to use.
+- `surpars = ` the physical parameters to use in the surrogate. It is strongly
+  recommended to not change the default values of `antigenconcen`,
+  `antibodyconcen`, or `CP` unless you really know what you are doing --  these
+  default values are implicitly assumed in other places.
+- `simpars = ` the simulation parameters to use (number of particles,
+  simulations, domain size, etc).
+
+Keyword Arguments:
+- `terminator`, can be used to alter how the number of samples for each
+  parameter set is determined. See [`VarianceTerminator`](@ref) for the default
+  values.
+"""
+function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+                                terminator=VarianceTerminator())
+    @assert surrogate_size[end] == length(simpars.tsave)
+
+    # reach of parameters we vary
+    logkons  = range(surpars.logkon_range[1], surpars.logkon_range[2], length=surrogate_size[1])
+    logkoffs = range(surpars.logkoff_range[1], surpars.logkoff_range[2], length=surrogate_size[2])
+    logkonbs = range(surpars.logkonb_range[1], surpars.logkonb_range[2], length=surrogate_size[3])
+    reachs   = range(surpars.reach_range[1], surpars.reach_range[2], length=surrogate_size[4])    
+    biopars  = BioPhysParams(; kon=0.0, koff=0.0, konb=0.0, reach=0.0)
+    
+    # output from simulations
+    tbo      = TotalBoundOutputter(length(simpars.tsave))
+    surmeans = zeros(surrogate_size)
+    
+    # run and save the simulation results 
+    for (i4,reach) in enumerate(reachs)
+        biopars.reach = reach 
+
+        for (i3,logkonb) in enumerate(logkonbs)
+            biopars.konb = 10.0^logkonb
+
+            for (i2,logkoff) in enumerate(logkoffs)
+                biopars.koff = 10.0^logkoff
+
+                for (i1,logkon) in enumerate(logkons)
+                    biopars.kon = 10.0^logkon
+                    
+                    run_spr_sim!(tbo, biopars, simpars, terminator)
+                    means!(view(surmeans,i1,i2,i3,i4,:), tbo)
+
+                    # reset outputter and terminator
+                    tbo()                                    
+                    reset!(terminator)
+                end
+            end
+        end
+    end
+
+    Surrogate(surrogate_size, surmeans, surpars, simpars)
 end
 

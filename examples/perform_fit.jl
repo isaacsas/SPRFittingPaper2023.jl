@@ -16,69 +16,35 @@ OUTDIR = joinpath(BASEDIR, "Experiments", "Fitted_Sam", experiment_name)
 antigenconcen = 295.0 
 
 # high kon
-lutfile = "/Users/isaacsas/Dropbox/Collaborations/Omer Dushek/2022 - Bivalent Antibody Project/21-02-2022-Dans_Tutorials_and_Codes/Codes/Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
-#lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
-logkon_range = (-3.0,2.0)    
+lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
 
 # low kon
-#lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
-#logkon_range = (-5.0,-0.0)
+# lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
 
 # output control
 save_curves = true
 visualise   = true
 
-# surrogate parameter ranges (log space except reach)
-logkoff_range = (-4.0, -1.0)
-logkonb_range = (-3.0, 1.5)
-reach_range   = (2.0, 35.0)
-
 # optimizer parameter ranges (log space except reach)
 #logkon_optrange  = (-5.0, -1.25)  # or -2.5 in old file
 logkon_optrange = (-3.0, -1.25)
-logkoff_optrange = logkoff_range
+logkoff_optrange = (-4.0, -1.0)
 logkonb_optrange = (-3.0, 1.0)
-reach_optrange   = reach_range
+reach_optrange   = (2.0, 35.0)
 logCP_optrange   = (1.0, 5.0)
 
-# internal surrogate antigen concentration in μM
-# this corresponds to what was used in building the lookup table
-surrogate_agc = SPRFitting.DEFAULT_SIM_ANTIGENCONCEN
-
-# Forward simulation parameters
-# Note we use the surrogate antigen concentration and not the SPR one. This is
-# because we compare SPR data to forward simulations based on the fitted
-# parameters from the surrogate's lookup table.
-# Really this data should all be recovered from the surrogate/SPR data
-simpars = SimParams(; antigenconcen=surrogate_agc,
-                      N = 1000,           # number of particles
-                      tstop = 600.0,      # time to end simulations
-                      tstop_AtoB = 150.0, # time to shut off A --> B
-                      dt = 1.0,           # time frequency to save 
-                      DIM=3,              # use a cubic domain
-                      nsims = 100)        # number of simulations to run
-
 ############################ END INPUT ###############################
-
-#################### INTERNAL PARAMETERS #############################
-
-# the surrogate's parameter ranges (all log space except reach)
-logpar_ranges = SurrogateRanges(; logkon_range, logkoff_range, logkonb_range, reach_range)
 
 # the optimizer's parameter ranges (all log space except reach)
 optpar_ranges = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
 
-# build the surrogate, use the same antigenconcentration as the lookup table
-surrogate = Surrogate(logpar_ranges, lutfile; antigenconcen = surrogate_agc)
-
-################## END INTERNAL PARAMETERS ############################
-
-############ RUN SCRIPT ############
+# load the surrogate
+surrogate = Surrogate(lutfile)
 
 # this should create the directory if it doesn't exist
 mkpath(OUTDIR)
 
-# Loop through files and do the fitting
+# loop through files and do the fitting
 allfiles = readdir(RAWDIR)
 
 for file in allfiles
@@ -93,11 +59,11 @@ for file in allfiles
 
         if visualise
             figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
-            visualisefit(bbopt_output, aligneddat, simpars, figfile)
+            visualisefit(bbopt_output, aligneddat, surrogate.simpars, figfile)
         end
         if save_curves
             curvefile = joinpath(OUTDIR, filename)
-            savefit(bbopt_output, aligneddat, simpars, curvefile)
+            savefit(bbopt_output, aligneddat, surrogate.simpars, curvefile)
         end
     end
 end

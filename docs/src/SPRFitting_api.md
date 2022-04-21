@@ -17,6 +17,10 @@ SimParams
 run_spr_sim!
 TotalBoundOutputter
 TotalAOutputter
+means
+means!
+vars
+sems
 SimNumberTerminator
 VarianceTerminator
 ```
@@ -28,11 +32,12 @@ AlignedData
 get_aligned_data
 ```
 
-## Surrogate Parameters
+## Surrogate 
 
 ```@docs
-SurrogateRanges
+SurrogateParams
 Surrogate
+build_surrogate_serial
 ```
 
 ## Fitting 

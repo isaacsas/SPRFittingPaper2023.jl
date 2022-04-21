@@ -21,11 +21,11 @@ Base.@kwdef mutable struct BioPhysParams{T <: Number}
     konb::T
     """Reach of A+B --> C reaction"""
     reach::T
-    """CP factor"""
+    """CP factor (default = 1.0)"""
     CP::T = 1.0
-    """Concentration of antigen"""
-    antigenconcen::T = 1.0
-    """Concentration of antibodies, should be consistent with kon's units"""
+    """Concentration of antigen (default = `DEFAULT_SIM_ANTIGENCONCEN`"""
+    antigenconcen::T = DEFAULT_SIM_ANTIGENCONCEN
+    """Concentration of antibodies, should be consistent with kon's units (default = 1.0)"""
     antibodyconcen::T = 1.0
 end
 
@@ -40,7 +40,7 @@ Notes:
     p = [\\log_{10}(\\text{kon}), \\log_{10}(\\text{koff}), \\log_{10}(\\text{kon}_{\\text{b}}), \\text{reach}, \\log_{10}(\\text{CP})] 
     ``
 """
-function biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=1.0)
+function biopars_from_fitting_vec(p; antibodyconcen=1.0, antigenconcen=DEFAULT_SIM_ANTIGENCONCEN)
     kon   = 10^p[1]
     koff  = 10^p[2]
     konb  = 10^p[3]
