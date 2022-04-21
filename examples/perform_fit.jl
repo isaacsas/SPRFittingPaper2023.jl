@@ -16,10 +16,10 @@ OUTDIR = joinpath(BASEDIR, "Experiments", "Fitted_Sam", experiment_name)
 antigenconcen = 295.0 
 
 # high kon
-#lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
+lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
 
 # low kon
-lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
+# lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
 
 # output control
 save_curves = true
