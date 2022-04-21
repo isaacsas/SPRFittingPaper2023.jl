@@ -18,7 +18,7 @@ include("forward_simulator.jl")
 export run_spr_sim!
 
 include("callbacks.jl")
-export TotalBoundOutputter, TotalAOutputter, means, vars, sems
+export TotalBoundOutputter, TotalAOutputter
 
 include("spr_data.jl")
 export AlignedData, get_aligned_data

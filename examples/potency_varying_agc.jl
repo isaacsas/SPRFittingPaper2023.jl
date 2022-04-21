@@ -73,7 +73,7 @@ function runpotencysims!(biopars, simpars, antigenconcen, antibodyconcens)
     for (ax,antibodyconcen) in enumerate(antibodyconcens)                
         biopars.antibodyconcen = antibodyconcen            
         run_spr_sim!(outdata, biopars, simpars)
-        freeantigensims[ax,:] = means(outdata)
+        freeantigensims[ax,:] = SPRFitting.means(outdata)
         outdata()   # reset 
     end
     return freeantigensims

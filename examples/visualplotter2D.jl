@@ -61,7 +61,7 @@ function makeplots(biopars, simpars, reach, antibodyconcens)
         biopars.antibodyconcen = antibodyconcen
         output = TotalBoundOutputter(numsavepts)
         run_spr_sim!(output, biopars, simpars)
-        push!(SD, means(output))
+        push!(SD, SPRFitting.means(output))
     end
 
     # plot circles at initial locations

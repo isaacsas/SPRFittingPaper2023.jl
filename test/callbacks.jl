@@ -1,4 +1,5 @@
 using SPRFitting, Statistics, StableRNGs, OnlineStats, Test
+using SPRFitting: means, sems
 rng = StableRNG(12345)
 
 # check calculating mean and variance ok
