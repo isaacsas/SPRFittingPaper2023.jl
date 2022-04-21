@@ -1,10 +1,9 @@
 module SPRFitting
 
-using DocStringExtensions
+using DocStringExtensions, UnPack
 using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
 using DelimitedFiles, Random, StaticArrays
 using OnlineStats: Mean, Variance, mean, var, std, nobs, fit!
-using UnPack
 using JLD, Interpolations, LossFunctions
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
 using XLSX, Plots
@@ -24,7 +23,7 @@ include("spr_data.jl")
 export AlignedData, get_aligned_data
 
 include("surrogate.jl")
-export SurrogateParams, Surrogate, build_surrogate_serial
+export SurrogateParams, Surrogate, save_surrogate, build_surrogate_serial
 
 include("fitting.jl")
 export fit_spr_data, bboptpars_to_physpars, visualisefit, savefit

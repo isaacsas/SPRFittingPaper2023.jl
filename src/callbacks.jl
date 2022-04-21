@@ -59,7 +59,7 @@ means(o::TotalBoundOutputter) = mean.(o.bindcnt)
 In-place vector of means.
 """
 function means!(m, o::TotalBoundOutputter) 
-    for i in enumerate(m)
+    for i in eachindex(m)
         m[i] = mean(o.bindcnt[i])
     end
     nothing

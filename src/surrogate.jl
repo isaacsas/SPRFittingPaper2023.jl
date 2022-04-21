@@ -23,6 +23,18 @@ Base.@kwdef struct SurrogateParams{T <: Number}
     CP::T = 1.0
 end
 
+function Base.show(io::IO,  ::MIME"text/plain", sur::SurrogateParams)   
+    println(io, summary(sur))
+    println(io, "logkon_range = ", sur.logkon_range)
+    println(io, "logkoff_range = ", sur.logkoff_range)
+    println(io, "logkonb_range = ", sur.logkonb_range)
+    println(io, "reach_range = ", sur.reach_range)
+    println(io, "[antigen] = ", sur.antigenconcen)
+    println(io, "[antibody] = ", sur.antibodyconcen)
+    print(io, "CP = ", sur.CP)    
+end
+
+
 
 """
 $(TYPEDEF)
@@ -90,6 +102,29 @@ function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing
     surrogate
 end
 
+"""
+    save_surrogate(filename, sur::Surrogate)
+
+Create a JLD file with the given surrogate.
+"""
+function save_surrogate(filename, sur::Surrogate{S,T}) where {S, T <: Array}
+
+    jldopen(filename, "w") do file
+        write(file, "FirstMoment", sur.itp)
+    
+        for f in fieldnames(SurrogateParams)
+            write(file, string(f), getfield(sur.surpars, f))
+        end
+
+        fs = (:N,:tstop,:tstop_AtoB,:tsave,:L)
+        for f in fs
+            write(file, string(f), getfield(sur.simpars, f))
+        end
+        write(file, "DIM", getdim(sur.simpars))
+    end
+    
+    nothing
+end
 
 """
     build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
@@ -153,4 +188,3 @@ function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams,
 
     Surrogate(surrogate_size, surmeans, surpars, simpars)
 end
-
