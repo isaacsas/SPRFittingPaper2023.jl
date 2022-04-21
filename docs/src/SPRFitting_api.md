@@ -38,6 +38,7 @@ get_aligned_data
 SurrogateParams
 Surrogate
 build_surrogate_serial
+save_surrogate
 ```
 
 ## Fitting 
