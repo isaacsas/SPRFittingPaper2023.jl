@@ -31,7 +31,7 @@ get_aligned_data
 ## Surrogate Parameters
 
 ```@docs
-SurrogateRanges
+SurrogateParams
 Surrogate
 ```
 

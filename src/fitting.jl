@@ -9,24 +9,24 @@ the provided data.
 
 """
 function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::AlignedData)
-    surranges = surrogate.param_ranges
-    sursize   = surrogate.surrogate_size
+    surpars = surrogate.surpars
+    sursize = surrogate.surrogate_size
     
     @unpack times, refdata_nonan, antibodyconcens = aligned_data
     
     # width of each range of parameters in the surrogate
-    dq1 = surranges.logkon_range[2] - surranges.logkon_range[1]        
-    dq2 = surranges.logkoff_range[2] - surranges.logkoff_range[1]        
-    dq3 = surranges.logkonb_range[2] - surranges.logkonb_range[1]        
-    dq4 = surranges.reach_range[2] - surranges.reach_range[1]        
+    dq1 = surpars.logkon_range[2] - surpars.logkon_range[1]        
+    dq2 = surpars.logkoff_range[2] - surpars.logkoff_range[1]        
+    dq3 = surpars.logkonb_range[2] - surpars.logkonb_range[1]        
+    dq4 = surpars.reach_range[2] - surpars.reach_range[1]        
 
     # the interpolant assumes a function y = f(x), where we provided y, and x is
     # just an integer for each data point we must therefore rescale from the
     # actual x-value in log parameter space to the integer space used in the
     # interpolant:
-    q2 = scaletoLUT(optpars[2], surranges.logkoff_range[1], sursize[2], dq2)
-    q3 = scaletoLUT(optpars[3], surranges.logkonb_range[1], sursize[3], dq3)
-    q4 = scaletoLUT(optpars[4], surranges.reach_range[1], sursize[4], dq4)
+    q2 = scaletoLUT(optpars[2], surpars.logkoff_range[1], sursize[2], dq2)
+    q3 = scaletoLUT(optpars[3], surpars.logkonb_range[1], sursize[3], dq3)
+    q4 = scaletoLUT(optpars[4], surpars.reach_range[1], sursize[4], dq4)
 
     e1     = zeros(length(times),length(antibodyconcens))    
     refabc = antibodyconcens[1]
@@ -34,7 +34,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
 
         # rescale the on rate to account for changing concentrations of antibody
         logkon = optpars[1] + log10(abc / refabc) 
-        q1     = scaletoLUT(logkon, surranges.logkon_range[1], sursize[1], dq1)
+        q1     = scaletoLUT(logkon, surpars.logkon_range[1], sursize[1], dq1)
         
         for (i,t) in enumerate(times)
             if !isnan(t) 
@@ -49,7 +49,7 @@ end
 
 checkrange(rsur,ropt) = (rsur[1] <= ropt[1] <= ropt[2] <= rsur[2])
 
-function checkranges(optranges, sr::SurrogateRanges)    
+function checkranges(optranges, sr::SurrogateParams)    
     checkrange(sr.logkon_range, optranges[1]) || error("Optimizer logkon_range not a subset of surrogate logkon_optrange")
     checkrange(sr.logkoff_range, optranges[2]) || error("Optimizer logkoff_range not subset of surrogate logkoff_optrange")
     checkrange(sr.logkonb_range, optranges[3]) || error("Optimizer logkonb_range not subset of surrogate logkonb_optrange")
@@ -81,7 +81,7 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
                       TraceInterval=10.0, 
                       kwargs...)
 
-    checkranges(searchrange, surrogate.param_ranges)
+    checkranges(searchrange, surrogate.surpars)
 
     # use a closure as bboptimize takes functions of a parameter vector only
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
