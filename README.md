@@ -1,4 +1,4 @@
-# SPRFitting
+# SPRFitting - Tools for fitting bivalent antibody SPR assays
 
 
 ## Installation
