@@ -177,8 +177,8 @@ end
 """
 $(TYPEDEF)
 
-Callback that stops simulating when the variance in bound antibodies
-becomes sufficiently small.
+Callback that stops simulating when the variance in bound antibodies becomes
+sufficiently small or a maximum number of simulations is reached.
 
 # Fields
 $(FIELDS)
