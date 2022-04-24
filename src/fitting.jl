@@ -69,9 +69,20 @@ end
 Find best fit parameters of the surrogate to the given data.
 
 Notes:
-- `searchrange` should be a BlackBoxOptim compatible vector of `Pair`s.
+- `searchrange` should be a BlackBoxOptim compatible vector of `Pair`s of the
+  form:
+  ```
+    searchrange = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
+  ```
+  or
+  ```
+    searchrange = [logCP_optrange]
+  ```
+  In the latter case the other parameter ranges are set equal to the range
+  within the surrogate.
 - Uses `xnes` from BlackBoxOptim by default. 
 - kwargs are passed through to the optimizer.
+- Returns the best fit object.
 """
 function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange; 
                       NumDimensions=5, 
@@ -80,14 +91,21 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
                       TraceMode=:compact, 
                       TraceInterval=10.0, 
                       kwargs...)
+    
+    if length(searchrange) == 1
+        sr = [surrogate.logkon_range, surrogate.logkoff_range, surrogate.logkonb_range,
+              surrogate.reach_range, searchrange[1]]
+    else
+        sr = searchrange
+    end
 
-    checkranges(searchrange, surrogate.surpars)
+    checkranges(sr, surrogate.surpars)
 
     # use a closure as bboptimize takes functions of a parameter vector only
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
 
     # optimize for the best fitting parameters
-    bboptimize(bboptfun; SearchRange=searchrange, NumDimensions, Method, MaxSteps, 
+    bboptimize(bboptfun; SearchRange=sr, NumDimensions, Method, MaxSteps, 
                          TraceMode, TraceInterval, kwargs...) #,Tracer=:silent)
 end
 
