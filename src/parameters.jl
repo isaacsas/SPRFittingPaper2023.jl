@@ -13,19 +13,19 @@ Biophysical parameters to use in forward simulations.
 $(FIELDS)
 """
 Base.@kwdef mutable struct BioPhysParams{T <: Number}
-    """A --> B rate, units of concentration per time"""
+    """A --> B rate, units of (μM s)⁻¹"""
     kon::T
-    """B --> A rate, units of per time"""
+    """B --> A rate, units of s⁻¹"""
     koff::T
-    """A+B --> C rate, units of per time"""
+    """A+B --> C rate, units of s⁻¹"""
     konb::T
-    """Reach of A+B --> C reaction"""
+    """Reach of A+B --> C reaction, units of nm"""
     reach::T
     """CP factor (default = 1.0)"""
     CP::T = 1.0
-    """Concentration of antigen (default = `DEFAULT_SIM_ANTIGENCONCEN`"""
+    """Concentration of antigen (default = `DEFAULT_SIM_ANTIGENCONCEN` μM)"""
     antigenconcen::T = DEFAULT_SIM_ANTIGENCONCEN
-    """Concentration of antibodies, should be consistent with kon's units (default = 1.0)"""
+    """Concentration of antibodies, should be consistent with kon's units (default = 1.0 μM)"""
     antibodyconcen::T = 1.0
 end
 

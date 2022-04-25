@@ -7,13 +7,13 @@ Biophysical parameters used in the surrogate.
 $(FIELDS)
 """
 Base.@kwdef struct SurrogateParams{T <: Number}
-    """log₁₀ space range of `kon`."""
+    """log₁₀ space range of `kon`, first order rate in surrogate (units of s⁻¹)."""
     logkon_range::Tuple{T,T}
-    """log₁₀ space range of `koff`."""
+    """log₁₀ space range of `koff` (units of s⁻¹)."""
     logkoff_range::Tuple{T,T}
-    """log₁₀ space range of `konb`."""
+    """log₁₀ space range of `konb`, Doi association rate in surrogate (units of s⁻¹)."""
     logkonb_range::Tuple{T,T}
-    """linear range of reach values"""
+    """linear range of reach values (units of nm)"""
     reach_range::Tuple{T,T}
     """Surrogate's internal antigen concentration in μM (default is `DEFAULT_SIM_ANTIGENCONCEN`)."""
     antigenconcen::T = DEFAULT_SIM_ANTIGENCONCEN
