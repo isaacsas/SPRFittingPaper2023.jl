@@ -92,13 +92,13 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
                       TraceInterval=10.0, 
                       kwargs...)
     
+    
     if length(searchrange) == 1
-        sr = [surrogate.logkon_range, surrogate.logkoff_range, surrogate.logkonb_range,
-              surrogate.reach_range, searchrange[1]]
+        sp = surrogate.surpars
+        sr = [sp.logkon_range, sp.logkoff_range, sp.logkonb_range, sp.reach_range, searchrange[1]]
     else
         sr = searchrange
     end
-
     checkranges(sr, surrogate.surpars)
 
     # use a closure as bboptimize takes functions of a parameter vector only
