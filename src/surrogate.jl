@@ -17,7 +17,7 @@ Base.@kwdef struct SurrogateParams{T <: Number}
     reach_range::Tuple{T,T}
     """Surrogate's internal antigen concentration in μM (default is `DEFAULT_SIM_ANTIGENCONCEN`)."""
     antigenconcen::T = DEFAULT_SIM_ANTIGENCONCEN
-    """Surrogate's intenral antibody concentration in μM (default is 1.0)."""
+    """Surrogate's internal antibody concentration in μM (default is 1.0)."""
     antibodyconcen::T = 1.0
     """Surrogate's internal CP value (default is 1.0)"""
     CP::T = 1.0
