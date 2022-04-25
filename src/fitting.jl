@@ -44,7 +44,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
     end
    
     # calculate the ℓ₂ error 
-    return sqrt(value(L2DistLoss(), vec(e1), vec(refdata_nonan), AggMode.Sum()))
+    return sqrt(sum((e-r)^2 for (e,r) in zip(vec(e1),vec(refdata_nonan))))
 end
 
 checkrange(rsur,ropt) = (rsur[1] <= ropt[1] <= ropt[2] <= rsur[2])

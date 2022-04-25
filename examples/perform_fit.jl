@@ -24,6 +24,7 @@ lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_
 # output control
 save_curves = true
 visualise   = true
+nsims       = 100  # number of simulations to use when plotting 
 
 # optimizer parameter ranges (log space except reach)
 #logkon_optrange  = (-5.0, -1.25)  # or -2.5 in old file
@@ -57,13 +58,19 @@ for file in allfiles
         # find the best fit parameters
         bbopt_output = fit_spr_data(surrogate, aligneddat, optpar_ranges)
 
+        surrogate.simpars.nsims = nsims
+
         if visualise
+            print("saving plot...")
             figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
             visualisefit(bbopt_output, aligneddat, surrogate.simpars, figfile)
+            println("done")
         end
         if save_curves
+            print("saving spreadsheet...")
             curvefile = joinpath(OUTDIR, filename)
             savefit(bbopt_output, aligneddat, surrogate.simpars, curvefile)
+            println("done")
         end
     end
 end
