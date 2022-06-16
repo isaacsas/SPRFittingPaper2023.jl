@@ -7,12 +7,10 @@ The aligned data from a set of SPR experiments varying antibody concentrations.
 $(FIELDS)
 """
 Base.@kwdef struct AlignedData
-    """Times SPR data is defined at"""
-    times::Vector{Float64}
-    """length(times) by length(antibodyconcens) matrix of SPR data"""
-    refdata::Matrix{Float64}
-    """refdata with each nan replaced by zero"""
-    refdata_nonan::Matrix{Float64}
+    """times[i] gives the SPR data timepoints for antibodyconcen[i]"""
+    times::Vector{Vector{Float64}}
+    """refdata[i] gives the SPR simulation data for antibodyconcens[i] """
+    refdata::Vector{Vector{Float64}}
     """Antibody concentrations for the SPR data set in μM"""
     antibodyconcens::Vector{Float64}
     """Antigen concentration for the SPR data set in μM"""
@@ -22,23 +20,40 @@ end
 """
     get_aligned_data(fname, antigenconcen)
 
-Read the given CSV file representing aligned SPR data. Returns an `AlignedData`
-structure storing the given SPR experiment data.
+Read the given CSV file representing aligned SPR data. Returns an `AlignedData` structure
+storing the given SPR experiment data.
 
 Notes:
-- `antigenconcen = ` the concentration of antigen used in the experiments in
-  units of μM.
+- `antigenconcen = nothing` the concentration of antigen used in the experiments in units of
+  μM. If not set assumes the CSV filename has the form ""text-AGCCONCEN_aligned.csv"", and
+  parses the number antigen concentration from AGCCONCEN.
 """
-function get_aligned_data(fname, antigenconcen)
+function get_aligned_data(fname, antigenconcen=nothing)
 
-    data, header = readdlm(fname,',', header=true)
-    
-    antibodyconcens = parse.(Float64, header[2:end])
-    times   = data[:,1]    
-    refdata = data[:,2:end]
+    # assumes fname = "text-AGCCONCEN_aligned.csv"
+    if antigenconcen === nothing
+        agcstr = split(split(fname, '-')[end], '_')[end-1]
+        antigenconcen = parse(Float64, agcstr)
+    end
 
-    # replace nan's by zeros
-    refdata_nonan = map(x -> isnan(x) ? 0.0 : x, refdata)
-    
-    return AlignedData(times, refdata, refdata_nonan, antibodyconcens, antigenconcen)
+    cf = CSV.File(fname)
+    headers = Tables.columnnames(cf)
+    nabcs   = div(length(headers), 2)
+    antibodyconcens = parse.(Float64, map(String, headers[2:2:end]))
+
+    cols = Tables.columns(cf)
+    idx  = 1
+    times = Vector{Vector{Float64}}(undef, nabcs)
+    refdata = Vector{Vector{Float64}}(undef, nabcs)
+    for (i,colname) in enumerate(headers)
+        col = Tables.getcolumn(cols, colname)
+        if isodd(i)
+            times[idx] = collect(skipmissing(col))
+        else
+            refdata[idx] = collect(skipmissing(col))
+            idx += 1
+        end
+    end
+
+    return AlignedData(times, refdata, antibodyconcens, antigenconcen)
 end

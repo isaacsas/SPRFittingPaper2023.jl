@@ -2,7 +2,7 @@ module SPRFitting
 
 using DocStringExtensions, UnPack
 using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
-using DelimitedFiles, Random, StaticArrays
+using CSV, Tables, Random, StaticArrays
 using OnlineStats: Mean, Variance, mean, var, std, nobs, fit!
 using JLD, Interpolations
 using BlackBoxOptim: bboptimize, best_candidate, best_fitness
