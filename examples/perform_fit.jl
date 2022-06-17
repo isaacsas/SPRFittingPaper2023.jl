@@ -1,4 +1,5 @@
 using SPRFitting
+using BlackBoxOptim: best_fitness
 using LinearAlgebra
 using Plots
 
@@ -18,6 +19,7 @@ lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T
 # lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
 
 # output control
+nfits       = 100   # how many fits to run and then take the minimum over
 save_curves = true
 visualise   = true
 nsims       = 100  # number of simulations to use when plotting
@@ -55,7 +57,15 @@ for (n,file) in enumerate(allfiles)
 
         # find the best fit parameters
         bbopt_output = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+        for i in 2:nfits
+            println("\nRunning fit: ", i, "/", nfits)
+            bbopt_output_new = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+            if best_fitness(bbopt_output_new) < best_fitness(bbopt_output)
+                bbopt_output = bbopt_output_new
+            end
+        end
 
+        # for use with outputting so we don't modify the surrogate's parameters
         simpars = deepcopy(surrogate.simpars)
         simpars.nsims = nsims
 
