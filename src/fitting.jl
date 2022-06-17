@@ -102,8 +102,6 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
     end
     checkranges(sr, surrogate.surpars)
 
-    @show sr
-
     # use a closure as bboptimize takes functions of a parameter vector only
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
 

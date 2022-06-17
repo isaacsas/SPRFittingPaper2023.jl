@@ -45,7 +45,8 @@ mkpath(OUTDIR)
 allfiles = readdir(RAWDIR)
 
 for (n,file) in enumerate(allfiles)
-    @show file, n/length(allfiles)
+    println("\n#####################\n", "Fitting file: ", n, "/", length(allfiles), "\n", "File: ", file, "\n")
+
     if occursin(r"^Data_", file) == true
         filename = replace(replace(file,r"^Data_" => "" ), r".csv$" => "")
 
