@@ -37,7 +37,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
         q1 = scaletoLUT(logkon, surpars.logkon_range[1], sursize[1], dq1)
 
         sprdata = refdata[j]
-        for (i,t) in times[j]
+        for (i,t) in enumerate(times[j])
             # should below be t + 1.0 to scale [0.0,T] to [1,T+1]?
             newerr = 10.0^(optpars[5]) * surrogate.itp(q1,q2,q3,q4,t) - sprdata[i]
             err += newerr * newerr
@@ -101,6 +101,8 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
         sr = searchrange
     end
     checkranges(sr, surrogate.surpars)
+
+    @show sr
 
     # use a closure as bboptimize takes functions of a parameter vector only
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
@@ -180,7 +182,6 @@ Notes:
 function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
                       filename=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
-    @unpack tstop,tsave = simpars
     params = copy(bbopt_output.method_output.population[1].params)
 
     # plot aligned experimental data
@@ -202,7 +203,7 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
         simpars.tstop = last(times[i])
 
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        plot!(fig1, tsave, means(outputter))
+        plot!(fig1, times[i], means(outputter))
     end
 
     (filename !== nothing) && savefig(fig1, filename)
@@ -219,7 +220,6 @@ XLSX spreadsheet with the given name.
 """
 function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
-    @unpack tstop, tsave = simpars
 
     savedata = Vector{Vector{Float64}}(undef, 3*length(antibodyconcens))
 
@@ -240,7 +240,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         # Simulate the model and save the averaged kinetics data
         ps[1] = params[1] + log10(abc/abcref)
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        savedata[idx+2] .= means(outputter)
+        savedata[idx+2] = means(outputter)
     end
 
     # headers for writing the simulation curves
@@ -248,7 +248,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
     MH = ["Model Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
     headers = Vector{String}()
     for i in eachindex(antibodyconcens)
-        push!(headers, ["times"])
+        push!(headers, "times")
         push!(headers, EH[i])
         push!(headers, MH[i])
     end

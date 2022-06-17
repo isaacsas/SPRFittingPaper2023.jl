@@ -51,8 +51,10 @@ function get_aligned_data(fname, antigenconcen=nothing)
             times[idx] = collect(skipmissing(col))
         else
             refdata[idx] = collect(skipmissing(col))
+            (length(refdata[idx]) == length(times[idx])) || error("Found a column of SPR data times with a different length than the assoicated column of SPR curve data.")
             idx += 1
         end
+
     end
 
     return AlignedData(times, refdata, antibodyconcens, antigenconcen)

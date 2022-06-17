@@ -4,16 +4,14 @@ using Plots
 
 ############ INPUT ############
 
-experiment_name = "Test_110322"
-
 # file directories
 #BASEDIR = joinpath(@__DIR__, "figures and data")
-BASEDIR = "/Users/isaacsas/Dropbox/Documents/data/SPR data/2022-06-07 - FD11A_Data"
-RAWDIR = joinpath(BASEDIR, "Aligned", experiment_name)
-OUTDIR = joinpath(BASEDIR, "Fitted_Sam", experiment_name)
+BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
+RAWDIR = joinpath(BASEDIR, "Aligned")
+OUTDIR = joinpath(BASEDIR, "Fitted_Sam")
 
 # high kon
-lutfile = "/Users/isaacsas/Dropbox/Documents/Collaborators/2022-04-25 - Expanded Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
+lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
 #lutfile = joinpath(BASEDIR,"Surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld")
 
 # low kon
@@ -46,7 +44,8 @@ mkpath(OUTDIR)
 # loop through files and do the fitting
 allfiles = readdir(RAWDIR)
 
-for file in allfiles
+for (n,file) in enumerate(allfiles)
+    @show file, n/length(allfiles)
     if occursin(r"^Data_", file) == true
         filename = replace(replace(file,r"^Data_" => "" ), r".csv$" => "")
 
@@ -56,18 +55,19 @@ for file in allfiles
         # find the best fit parameters
         bbopt_output = fit_spr_data(surrogate, aligneddat, optpar_ranges)
 
-        surrogate.simpars.nsims = nsims
+        simpars = deepcopy(surrogate.simpars)
+        simpars.nsims = nsims
 
         if visualise
             print("saving plot...")
             figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
-            visualisefit(bbopt_output, aligneddat, surrogate.simpars, figfile)
+            visualisefit(bbopt_output, aligneddat, simpars, figfile)
             println("done")
         end
         if save_curves
             print("saving spreadsheet...")
             curvefile = joinpath(OUTDIR, filename)
-            savefit(bbopt_output, aligneddat, surrogate.simpars, curvefile)
+            savefit(bbopt_output, aligneddat, simpars, curvefile)
             println("done")
         end
     end
