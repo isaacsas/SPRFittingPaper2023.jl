@@ -184,7 +184,7 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
     params = copy(bbopt_output.method_output.population[1].params)
 
     # plot aligned experimental data
-    fig1 = plot(xlabel="time", ylabel="RU", legend=false)
+    fig1 = plot(; xlabel="time", ylabel="RU", legend=false)
     for (i,sprcurve) in enumerate(refdata)
         plot!(fig1, times[i], sprcurve, color="black")
     end
@@ -192,11 +192,15 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
     # plot simulation data with fit parameters
     ps = copy(params)
     abcref = antibodyconcens[1]
-    for abc in antibodyconcens
+    for (i,abc) in enumerate(antibodyconcens)
         # set kon
         ps[1] = params[1] + log10(abc/abcref)
 
-        outputter = TotalBoundOutputter(length(tsave))
+        # save at the SPR data times
+        outputter = TotalBoundOutputter(length(times[i]))
+        simpars.tsave = times[i]
+        simpars.tstop = last(times[i])
+
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
         plot!(fig1, tsave, means(outputter))
     end
@@ -217,34 +221,34 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
     @unpack tstop, tsave = simpars
 
-    savedata = zeros(length(tsave), 2*length(antibodyconcens)+1)
-    savedata[:,1] .= tsave
+    savedata = Vector{Vector{Float64}}(undef, 3*length(antibodyconcens))
 
     params = copy(bbopt_output.method_output.population[1].params)
     abcref = antibodyconcens[1]
     ps     = copy(params)
     for (j,abc) in enumerate(antibodyconcens)
+        idx = 3*(j-1) + 1
 
-        # This following is really hacky and needs to be replaced...
-        # Assign and save the aligned data to match tsave
-        nstart = Int(times[1])
-        savedata[1:nstart,2*j] .= NaN
-        for n=1:length(times)
-            savedata[nstart+n,2*j] = refdata[n,j]
-        end
+        savedata[idx] = times[j]
+        savedata[idx+1] = refdata[j]
+
+        # times to save model simulations at are same as the SPR data
+        outputter = TotalBoundOutputter(length(times[j]))
+        simpars.tsave = times[j]
+        simpars.tstop = last(times[j])
 
         # Simulate the model and save the averaged kinetics data
         ps[1] = params[1] + log10(abc/abcref)
-        outputter = TotalBoundOutputter(length(tsave))
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
-        savedata[:,2*j+1] .= means(outputter)
+        savedata[idx+2] .= means(outputter)
     end
 
     # headers for writing the simulation curves
     EH = ["Experimental Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
     MH = ["Model Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
-    headers = ["times"]
+    headers = Vector{String}()
     for i in eachindex(antibodyconcens)
+        push!(headers, ["times"])
         push!(headers, EH[i])
         push!(headers, MH[i])
     end
@@ -260,9 +264,9 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         sheet = xf[1]
         XLSX.rename!(sheet, "SPR and Fit Curves")
         sheet[1,1:length(headers)] = headers
-        nrows,ncols = size(savedata)
-        for j in 1:ncols
-            sheet[2:(nrows+1),j] = savedata[:,j]
+        for (j,sd) in enumerate(savedata)
+            nrows = length(sd)
+            sheet[2:(nrows+1),j] = sd
         end
 
         # make separate sheet for fit parameter values
