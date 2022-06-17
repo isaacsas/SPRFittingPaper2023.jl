@@ -39,7 +39,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
         sprdata = refdata[j]
         for (i,t) in enumerate(times[j])
             # should below be t + 1.0 to scale [0.0,T] to [1,T+1]?
-            newerr = 10.0^(optpars[5]) * surrogate.itp(q1,q2,q3,q4,t) - sprdata[i]
+            newerr = 10.0^(optpars[5]) * surrogate.itp(q1,q2,q3,q4,t+1) - sprdata[i]
             err += newerr * newerr
         end
     end
