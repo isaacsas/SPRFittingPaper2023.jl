@@ -20,6 +20,7 @@ XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 
 [compat]
 BlackBoxOptim = "0.6.1"
+CSV = "0.10"
 DataStructures = "0.18.11"
 DocStringExtensions = "0.8,0.9"
 Interpolations = "0.13.5"
