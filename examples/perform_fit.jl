@@ -72,13 +72,13 @@ for (n,file) in enumerate(allfiles)
         if visualise
             print("saving plot...")
             figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
-            visualisefit(bbopt_output, aligneddat, simpars, figfile)
+            visualisefit(bbopt_output, aligneddat, surrogate, simpars, figfile)
             println("done")
         end
         if save_curves
             print("saving spreadsheet...")
             curvefile = joinpath(OUTDIR, filename)
-            savefit(bbopt_output, aligneddat, simpars, curvefile)
+            savefit(bbopt_output, aligneddat, surrogate, simpars, curvefile)
             println("done")
         end
     end

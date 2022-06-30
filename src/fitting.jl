@@ -114,6 +114,9 @@ end
     bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
                                 surrogate_antigenconcen)
 
+    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
+                                surrogate::Surrogate)
+
 Converts parameters vector from BlackBoxOptim to physical parameters, converting
 the reach from simulation to physical values.
 
@@ -135,6 +138,12 @@ function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
     reach = bboptpars[4] * cbrt(surrogate_antigenconcen/antigenconcen)
     CP    = (10.0 ^ bboptpars[5])
     [kon,koff,konb,reach,CP]
+end
+
+function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
+                               surrogate::Surrogate)
+    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
+                          surrogate.surpars.antigenconcen)
 end
 
 
@@ -169,7 +178,7 @@ end
 
 """
     visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
-                        filename=nothing)
+                 surrogate::Surrogate, filename=nothing)
 
 Plots fit between data and simulated curves using fitted parameters across a set
 of antibody concentrations.
@@ -177,8 +186,8 @@ of antibody concentrations.
 Notes:
 - `filename = nothing` if set will cause the graph to be saved.
 """
-function visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
-                      filename=nothing)
+function visualisefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
+                      simpars::SimParams, filename=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
     params = copy(bbopt_output.method_output.population[1].params)
 
@@ -211,12 +220,14 @@ end
 
 
 """
-    savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
+    savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate, simpars::SimParams,
+            outfile)
 
 Saves the data, simulated data with fit parameters, and fit parameters in an
 XLSX spreadsheet with the given name.
 """
-function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outfile)
+function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
+                 simpars::SimParams, outfile)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
 
     savedata = Vector{Vector{Float64}}(undef, 3*length(antibodyconcens))
@@ -281,9 +292,11 @@ function savefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams, outf
         parnames = ["Best fit parameters (physical):","kon","koff","konb","reach","CP"]
         sheet[rows,4] = parnames
 
-        # convert internal simulator concentration from (nm)⁻³ to μM
+        # convert internal simulator concentration from (nm)⁻³ to μM as a consistency check
         simagc = inv_cubic_nm_to_muM(getantigenconcen(simpars))
-        pars   = bboptpars_to_physpars(bs, antibodyconcens[1], antigenconcen, simagc)
+        @assert isapprox(simagc, surrogate.surpars.antigenconcen, atol=1e-12)
+
+        pars = bboptpars_to_physpars(bs, antibodyconcens[1], antigenconcen, surrogate)
         sheet[rows,5] = ["",pars...]
 
         # fitness
