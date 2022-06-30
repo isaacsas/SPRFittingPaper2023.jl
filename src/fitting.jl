@@ -114,8 +114,7 @@ end
     bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
                                 surrogate_antigenconcen)
 
-    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
-                                surrogate::Surrogate)
+    bboptpars_to_physpars(bboptpars, aligned_data::AlignedData, surrogate::Surrogate)
 
 Converts parameters vector from BlackBoxOptim to physical parameters, converting
 the reach from simulation to physical values.
@@ -140,10 +139,9 @@ function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
     [kon,koff,konb,reach,CP]
 end
 
-function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
-                               surrogate::Surrogate)
-    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
-                          surrogate.surpars.antigenconcen)
+function bboptpars_to_physpars(bboptpars, ad::AlignedData, sur::Surrogate)
+    bboptpars_to_physpars(bboptpars, ad.antibodyconcens[1], ad.antigenconcen,
+                          sur.surpars.antigenconcen)
 end
 
 
@@ -296,7 +294,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
         simagc = inv_cubic_nm_to_muM(getantigenconcen(simpars))
         @assert isapprox(simagc, surrogate.surpars.antigenconcen, atol=1e-12)
 
-        pars = bboptpars_to_physpars(bs, antibodyconcens[1], antigenconcen, surrogate)
+        pars = bboptpars_to_physpars(bs, aligneddat, surrogate)
         sheet[rows,5] = ["",pars...]
 
         # fitness

@@ -9,7 +9,7 @@ using Plots
 #BASEDIR = joinpath(@__DIR__, "figures and data")
 BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
 RAWDIR = joinpath(BASEDIR, "Aligned")
-OUTDIR = joinpath(BASEDIR, "Fitted_Sam")
+OUTDIR = joinpath(BASEDIR, "Fitted_Sam_test2")
 
 # high kon
 lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
