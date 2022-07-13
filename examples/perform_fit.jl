@@ -9,7 +9,7 @@ using Plots
 #BASEDIR = joinpath(@__DIR__, "figures and data")
 BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
 RAWDIR = joinpath(BASEDIR, "Aligned")
-OUTDIR = joinpath(BASEDIR, "Fitted_Sam_test2")
+OUTDIR = joinpath(BASEDIR, "Fitted_Sam_test3")
 
 # high kon
 lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
@@ -19,7 +19,7 @@ lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T
 # lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
 
 # output control
-nfits       = 100   # how many fits to run and then take the minimum over
+nfits       = 30   # how many fits to run and then take the minimum over
 save_curves = true
 visualise   = true
 nsims       = 100  # number of simulations to use when plotting
@@ -56,14 +56,18 @@ for (n,file) in enumerate(allfiles)
         aligneddat = get_aligned_data(joinpath(RAWDIR, file))
 
         # find the best fit parameters
-        bbopt_output = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+        bbopt_output,best_pars = fit_spr_data(surrogate, aligneddat, optpar_ranges)
         for i in 2:nfits
             println("\nRunning fit: ", i, "/", nfits)
-            bbopt_output_new = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+            bbopt_output_new, best_pars_new = fit_spr_data(surrogate, aligneddat, optpar_ranges)
             if best_fitness(bbopt_output_new) < best_fitness(bbopt_output)
                 bbopt_output = bbopt_output_new
+                best_pars = best_pars_new
             end
         end
+
+        println("Best fit is: ")
+        @show best_pars
 
         # for use with outputting so we don't modify the surrogate's parameters
         simpars = deepcopy(surrogate.simpars)
