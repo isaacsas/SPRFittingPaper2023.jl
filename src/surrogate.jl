@@ -23,7 +23,7 @@ Base.@kwdef struct SurrogateParams{T <: Number}
     CP::T = 1.0
 end
 
-function Base.show(io::IO,  ::MIME"text/plain", sur::SurrogateParams)   
+function Base.show(io::IO,  ::MIME"text/plain", sur::SurrogateParams)
     println(io, summary(sur))
     println(io, "logkon_range = ", sur.logkon_range)
     println(io, "logkoff_range = ", sur.logkoff_range)
@@ -31,7 +31,7 @@ function Base.show(io::IO,  ::MIME"text/plain", sur::SurrogateParams)
     println(io, "reach_range = ", sur.reach_range)
     println(io, "[antigen] = ", sur.antigenconcen)
     println(io, "[antibody] = ", sur.antibodyconcen)
-    print(io, "CP = ", sur.CP)    
+    print(io, "CP = ", sur.CP)
 end
 
 
@@ -63,8 +63,8 @@ Base.@kwdef mutable struct Surrogate{S,T,U,V,W}
     simpars::SimParams{V,W}
 end
 
-function Surrogate(lutdata::AbstractArray; surpars, simpars)
-    surrogate_size = size(lutdata)
+function Surrogate(lutdata::AbstractArray; surpars, simpars, surrogate_size=nothing)
+    sursize = (surrogate_size === nothing) ? size(lutdata) : surrogate_size
     itp = interpolate(lutdata, BSpline(Linear()))
     Surrogate(; surrogate_size, itp, surpars, simpars)
 end
@@ -102,32 +102,68 @@ function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing
     surrogate
 end
 
+######################################## SAVING ##########################################
+function save_surrogate_metadata(file, sursize, surpars::SurrogateParams, simpars::SimParams)
+    write(file, "surrogate_size", sursize)
+    for f in fieldnames(SurrogateParams)
+        write(file, string(f), getfield(surpars, f))
+    end
+    fs = (:N,:tstop,:tstop_AtoB,:tsave,:L)
+    for f in fs
+        write(file, string(f), getfield(simpars, f))
+    end
+    write(file, "DIM", getdim(simpars))
+    nothing
+end
+
+"""
+    save_surrogate_metadata(filename, surpars::SurrogateParams, simpars::SimParams)
+
+Create a JLD file with the given surrogate metadata.
+"""
+function save_surrogate_metadata(filename::String, sursize, surpars::SurrogateParams, simpars::SimParams)
+    jldopen(filename, "w") do file
+        save_surrogate_metadata(file, sursize, surpars, simpars)
+    end
+    nothing
+end
+
 """
     save_surrogate(filename, sur::Surrogate)
 
 Create a JLD file with the given surrogate.
 """
-function save_surrogate(filename, sur::Surrogate{S,T}) where {S, T <: Array}
-
+function save_surrogate(filename::String, sur::Surrogate{S,T}) where {S, T <: Array}
     jldopen(filename, "w") do file
         write(file, "FirstMoment", sur.itp)
-    
-        for f in fieldnames(SurrogateParams)
-            write(file, string(f), getfield(sur.surpars, f))
-        end
-
-        fs = (:N,:tstop,:tstop_AtoB,:tsave,:L)
-        for f in fs
-            write(file, string(f), getfield(sur.simpars, f))
-        end
-        write(file, "DIM", getdim(sur.simpars))
+        save_surrogate_metadata(file, sur.surrogate_size, sur.surpars, sur.simpars)
     end
-    
     nothing
 end
 
 """
-    build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+    save_surrogate_slice(filename, surslice::Matrix, idxstart, idxend)
+
+Create a JLD file with the trajectories (stored in a matrix) corresponding to the parameter
+sets `idxstart` through `idxend`.
+
+Notes:
+- `surslice` should be number of time samples by `length(idxstart:idxend)`, with each column
+  a given solution trajectory for the associated parameter set.
+"""
+function save_surrogate_slice(filename::String, surslice::Matrix, idxstart, idxend)
+    jldopen(filename, "w") do file
+        write(file, "surrogate_slice", surslice)
+        write(file, "idxstart", idxstart)
+        write(file, "idxend", idxend)
+    end
+    nothing
+end
+
+######################################## BUILDING ##########################################
+
+"""
+    build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams;
                            terminator=VarianceTerminator())
 
 Creates a new surrogate varying kon, koff, konb and reach uniformly in log
@@ -147,7 +183,7 @@ Keyword Arguments:
   parameter set is determined. See [`VarianceTerminator`](@ref) for the default
   values.
 """
-function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams; 
+function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams;
                                 terminator=VarianceTerminator())
     @assert surrogate_size[end] == length(simpars.tsave)
 
@@ -155,16 +191,16 @@ function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams,
     logkons  = range(surpars.logkon_range[1], surpars.logkon_range[2], length=surrogate_size[1])
     logkoffs = range(surpars.logkoff_range[1], surpars.logkoff_range[2], length=surrogate_size[2])
     logkonbs = range(surpars.logkonb_range[1], surpars.logkonb_range[2], length=surrogate_size[3])
-    reachs   = range(surpars.reach_range[1], surpars.reach_range[2], length=surrogate_size[4])    
+    reachs   = range(surpars.reach_range[1], surpars.reach_range[2], length=surrogate_size[4])
     biopars  = BioPhysParams(; kon=0.0, koff=0.0, konb=0.0, reach=0.0)
-    
+
     # output from simulations
     tbo      = TotalBoundOutputter(length(simpars.tsave))
     surmeans = zeros(surrogate_size)
-    
-    # run and save the simulation results 
+
+    # run and save the simulation results
     for (i4,reach) in enumerate(reachs)
-        biopars.reach = reach 
+        biopars.reach = reach
 
         for (i3,logkonb) in enumerate(logkonbs)
             biopars.konb = 10.0^logkonb
@@ -174,12 +210,12 @@ function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams,
 
                 for (i1,logkon) in enumerate(logkons)
                     biopars.kon = 10.0^logkon
-                    
+
                     run_spr_sim!(tbo, biopars, simpars, terminator)
                     means!(view(surmeans,i1,i2,i3,i4,:), tbo)
 
                     # reset outputter and terminator
-                    tbo()                                    
+                    tbo()
                     reset!(terminator)
                 end
             end
@@ -187,4 +223,48 @@ function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams,
     end
 
     Surrogate(surrogate_size, surmeans, surpars, simpars)
+end
+
+"""
+    build_surrogate_slice(surmetadata, idxstart, idxend)
+
+Simulates the portion of the surrogate's data corresponding to the linear indices from
+idxstart to idxend. Here the indices correspond to the portion of the ordered parameter
+space to simulate.
+"""
+function build_surrogate_slice(surmetadata, idxstart, idxend; terminator=VarianceTerminator())
+    surrogate_size = surmetadata["surrogate_size"]
+    @unpack logkon_range, logkoff_range, logkonb_range, reach_range = surmetadata
+    logkons = collect(range(logkon_range[1], logkon_range[2], length=surrogate_size[1]))
+    logkoffs = collect(range(logkoff_range[1], logkoff_range[2], length=surrogate_size[2]))
+    logkonbs = collect(range(logkonb_range[1], logkonb_range[2], length=surrogate_size[3]))
+    reaches = collect(range(reach_range[1], reach_range[2], length=surrogate_size[4]))
+    biopars  = BioPhysParams(; kon=0.0, koff=0.0, konb=0.0, reach=0.0)
+    @unpack tstop, tstop_AtoB, tsave = surmetadata
+    simpars = SimParams(; tstop, tstop_AtoB, tsave)
+
+    # output from simulations
+    tbo = TotalBoundOutputter(length(tsave))
+    idxs = idxstart:idxend
+    surrogate_data = zeros(surrogate_size[end], length(idxs))
+    cidxs = CartesianIndices(surrogate_size[1:end-1])
+
+    for (n,idx) in enumerate(idxs)
+        # get the parameters for this linear index
+        konidx,koffidx,konbidx,reachidx = Tuple(cidxs[idx])
+        biopars.kon  = 10.0 ^ logkons[konidx]
+        biopars.koff = 10.0 ^ logkoffs[koffidx]
+        biopars.konb = 10.0 ^ logkonbs[konbidx]
+        biopars.reach = reaches[reachidx]
+
+        # run a sim and save the average bound
+        run_spr_sim!(tbo, biopars, simpars, terminator)
+        surrogate_data[:,n] = means(tbo)
+
+        # reset the outputter and terminator
+        tbo()
+        reset!(terminator)
+    end
+
+    surrogate_data
 end
