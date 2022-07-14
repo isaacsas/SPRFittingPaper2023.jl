@@ -1,9 +1,9 @@
-#! /bin/bash -l
+#! /bin/bash
 
-JULIA="/Applications/Julia-1.8.app/Contents/Resources/julia/bin/julia"
-PKGPATH="/Users/isaacsas/julia-install/dev/SPRFitting"
+PKGPATH="/project/fpkmc3d/.julia_sai/dev/SPRFitting"
 METADATAFILE="/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates/test_metadata.jld"
 OUTFILEBASENAME="/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates/test_slice"
+JULIASCRIPT="make_surrogate_parallel.jl"
 NUMPARAMSETS=8
 NCPUS=4
 
@@ -12,6 +12,6 @@ let dn=$IDXINCREMENT-1
 let idx=1
 for (( n=1;n<=$NUMPARAMSETS;n+=$IDXINCREMENT)); do
     let last=$n+$dn
-    $JULIA "make_surrogate_parallel.jl" "$PKGPATH" "$METADATAFILE" "${OUTFILEBASENAME}_${idx}.jld" $n $last
+    qsub run_sim.sh "$JULIASCRIPT" "$PKGPATH" "$METADATAFILE" "${OUTFILEBASENAME}_${idx}.jld" $n $last
     let idx+=1
 done
