@@ -66,6 +66,7 @@ end
 function Surrogate(lutdata::AbstractArray; surpars, simpars, surrogate_size=nothing)
     sursize = (surrogate_size === nothing) ? size(lutdata) : surrogate_size
     itp = interpolate(lutdata, BSpline(Linear()))
+    @show typeof(itp)
     Surrogate(; surrogate_size, itp, surpars, simpars)
 end
 
@@ -133,10 +134,11 @@ end
 
 Create a JLD file with the given surrogate.
 """
-function save_surrogate(filename::String, sur::Surrogate{S,T}) where {S, T <: Array}
+function save_surrogate(filename::String, surrogate_size, surpars::SurrogateParams, simpars::SimParams)
+    surrogatetable = build_surrogate_serial(surrogate_size, surpars, simpars)
     jldopen(filename, "w") do file
-        write(file, "FirstMoment", sur.itp)
-        save_surrogate_metadata(file, sur.surrogate_size, sur.surpars, sur.simpars)
+        write(file, "FirstMoment", surrogatetable)
+        save_surrogate_metadata(file, surrogate_size, surpars, simpars)
     end
     nothing
 end
@@ -151,7 +153,9 @@ Notes:
 - `surslice` should be number of time samples by `length(idxstart:idxend)`, with each column
   a given solution trajectory for the associated parameter set.
 """
-function save_surrogate_slice(filename::String, surslice::Matrix, idxstart, idxend)
+function save_surrogate_slice(filename::String, surmetadata, idxstart, idxend)
+    surslice = build_surrogate_slice(surmetadata, idxstart, idxend)
+
     jldopen(filename, "w") do file
         write(file, "surrogate_slice", surslice)
         write(file, "idxstart", idxstart)
@@ -160,28 +164,27 @@ function save_surrogate_slice(filename::String, surslice::Matrix, idxstart, idxe
     nothing
 end
 
+
 ######################################## BUILDING ##########################################
 
 """
     build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams;
                            terminator=VarianceTerminator())
 
-Creates a new surrogate varying kon, koff, konb and reach uniformly in log
-space.
+Construct the data table array for a new surrogate by varying kon, koff, konb and reach.
 
 Arguments:
 - `surrogate_size = ` a Tuple with `(nkon,nkoff,nkonb,nreach)` points to use.
-- `surpars = ` the physical parameters to use in the surrogate. It is strongly
-  recommended to not change the default values of `antigenconcen`,
-  `antibodyconcen`, or `CP` unless you really know what you are doing --  these
-  default values are implicitly assumed in other places.
-- `simpars = ` the simulation parameters to use (number of particles,
-  simulations, domain size, etc).
+- `surpars = ` the physical parameters to use in the surrogate. It is strongly recommended
+  to not change the default values of `antigenconcen`, `antibodyconcen`, or `CP` unless you
+  really know what you are doing --  these default values are implicitly assumed in other
+  places.
+- `simpars = ` the simulation parameters to use (number of particles, simulations, domain
+  size, etc).
 
 Keyword Arguments:
-- `terminator`, can be used to alter how the number of samples for each
-  parameter set is determined. See [`VarianceTerminator`](@ref) for the default
-  values.
+- `terminator`, can be used to alter how the number of samples for each parameter set is
+  determined. See [`VarianceTerminator`](@ref) for the default values.
 """
 function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams, simpars::SimParams;
                                 terminator=VarianceTerminator())
@@ -221,18 +224,10 @@ function build_surrogate_serial(surrogate_size::Tuple, surpars::SurrogateParams,
             end
         end
     end
-
-    Surrogate(surrogate_size, surmeans, surpars, simpars)
+    surmeans
 end
 
-"""
-    build_surrogate_slice(surmetadata, idxstart, idxend)
-
-Simulates the portion of the surrogate's data corresponding to the linear indices from
-idxstart to idxend. Here the indices correspond to the portion of the ordered parameter
-space to simulate.
-"""
-function build_surrogate_slice(surmetadata, idxstart, idxend; terminator=VarianceTerminator())
+function unpack_metadata(surmetadata)
     surrogate_size = surmetadata["surrogate_size"]
     @unpack logkon_range, logkoff_range, logkonb_range, reach_range = surmetadata
     logkons = collect(range(logkon_range[1], logkon_range[2], length=surrogate_size[1]))
@@ -242,20 +237,41 @@ function build_surrogate_slice(surmetadata, idxstart, idxend; terminator=Varianc
     biopars  = BioPhysParams(; kon=0.0, koff=0.0, konb=0.0, reach=0.0)
     @unpack tstop, tstop_AtoB, tsave = surmetadata
     simpars = SimParams(; tstop, tstop_AtoB, tsave)
+    return (; surrogate_size, logkons, logkoffs, logkonbs, reaches, biopars, simpars)
+end
+
+function setpars!(biopars, idxs, p)
+    konidx,koffidx,konbidx,reachidx = idxs
+    biopars.kon  = 10.0 ^ p.logkons[konidx]
+    biopars.koff = 10.0 ^ p.logkoffs[koffidx]
+    biopars.konb = 10.0 ^ p.logkonbs[konbidx]
+    biopars.reach = p.reaches[reachidx]
+    nothing
+end
+
+"""
+    build_surrogate_slice(surmetadata, idxstart, idxend)
+
+Simulates the portion of the surrogate's data corresponding to the linear indices from
+idxstart to idxend. Here the indices correspond to the portion of the ordered parameter
+space to simulate.
+"""
+function build_surrogate_slice(surmetadata::Dict, idxstart, idxend; terminator=VarianceTerminator())
+
+    # get the parameters out and processed from the metadata Dict
+    p = unpack_metadata(surmetadata)
+    @unpack biopars, simpars = p
+    @unpack tstop, tstop_AtoB, tsave = simpars
 
     # output from simulations
     tbo = TotalBoundOutputter(length(tsave))
     idxs = idxstart:idxend
-    surrogate_data = zeros(surrogate_size[end], length(idxs))
-    cidxs = CartesianIndices(surrogate_size[1:end-1])
+    surrogate_data = zeros(p.surrogate_size[end], length(idxs))
+    cidxs = CartesianIndices(p.surrogate_size[1:end-1])
 
     for (n,idx) in enumerate(idxs)
         # get the parameters for this linear index
-        konidx,koffidx,konbidx,reachidx = Tuple(cidxs[idx])
-        biopars.kon  = 10.0 ^ logkons[konidx]
-        biopars.koff = 10.0 ^ logkoffs[koffidx]
-        biopars.konb = 10.0 ^ logkonbs[konbidx]
-        biopars.reach = reaches[reachidx]
+        setpars!(biopars, Tuple(cidxs[idx]), p)
 
         # run a sim and save the average bound
         run_spr_sim!(tbo, biopars, simpars, terminator)
@@ -267,4 +283,36 @@ function build_surrogate_slice(surmetadata, idxstart, idxend; terminator=Varianc
     end
 
     surrogate_data
+end
+
+function merge_surrogate_slices(p, slicefilebasename, nfiles)
+    # get the parameters from the metadata Dict
+    @unpack surrogate_size = p
+
+    surmeans = zeros(surrogate_size)
+    cidxs = CartesianIndices(surrogate_size[1:end-1])
+
+    for fidx in 1:nfiles
+        slicefname = slicefilebasename * "_$fidx.jld"
+        data = load(slicefname)
+        @unpack surrogate_slice, idxstart, idxend = data
+
+        for (n,idx) in enumerate(idxstart:idxend)
+            surmeans[Tuple(cidxs[idx])...,:] = surrogate_slice[:,n]
+        end
+    end
+    surmeans
+end
+
+function merge_surrogate_slices(surmetafname::String, slicefilebasename, nfiles; force=false)
+    surmetadata = load(surmetafname)
+    p = unpack_metadata(surmetadata)
+    surmeans = merge_surrogate_slices(p, slicefilebasename, nfiles)
+
+    mergedfname = slicefilebasename * "_merged.jld"
+    cp(surmetafname, mergedfname; force)
+    jldopen(mergedfname, "r+") do file
+        write(file, "FirstMoment", surmeans)
+    end
+    return mergedfname
 end
