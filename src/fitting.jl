@@ -70,7 +70,7 @@ end
 Find best fit parameters of the surrogate to the given data.
 
 Notes:
-- `searchrange` should be a BlackBoxOptim compatible vector of `Pair`s of the
+- `searchrange` should be a BlackBoxOptim compatible vector of `Tuple`s of the
   form:
   ```
     searchrange = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
@@ -83,7 +83,7 @@ Notes:
   within the surrogate.
 - Uses `xnes` from BlackBoxOptim by default.
 - kwargs are passed through to the optimizer.
-- Returns the best fit object.
+- Returns the best fit optimization object and the best fit (bio) parameters as a tuple.
 """
 function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange;
                       NumDimensions=5,
@@ -106,8 +106,13 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
     bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
 
     # optimize for the best fitting parameters
-    bboptimize(bboptfun; SearchRange=sr, NumDimensions, Method, MaxSteps,
-                         TraceMode, TraceInterval, kwargs...) #,Tracer=:silent)
+    bboptres = bboptimize(bboptfun; SearchRange=sr, NumDimensions, Method, MaxSteps,
+                          TraceMode, TraceInterval, kwargs...) #,Tracer=:silent)
+
+    # calculate the bestfit biological parameters
+    bestpars = bboptpars_to_physpars(best_candidate(bboptres), aligneddat, surrogate)
+
+    bboptres, bestpars
 end
 
 """

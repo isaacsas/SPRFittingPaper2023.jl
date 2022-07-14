@@ -24,7 +24,8 @@ include("spr_data.jl")
 export AlignedData, get_aligned_data
 
 include("surrogate.jl")
-export SurrogateParams, Surrogate, save_surrogate, build_surrogate_serial
+export SurrogateParams, Surrogate, save_surrogate, save_surrogate_metadata,
+       save_surrogate_slice, merge_surrogate_slices
 
 include("fitting.jl")
 export fit_spr_data, bboptpars_to_physpars, visualisefit, savefit
