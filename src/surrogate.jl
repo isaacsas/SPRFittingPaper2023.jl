@@ -130,9 +130,18 @@ function save_surrogate_metadata(filename::String, sursize, surpars::SurrogatePa
 end
 
 """
-    save_surrogate(filename, sur::Surrogate)
+    save_surrogate(filename, surrogate_size, surpars::SurrogateParams, simpars::SimParams)
 
-Create a JLD file with the given surrogate.
+Create a JLD file with the given surrogate metadata.
+
+Arguments:
+- `surrogate_size = ` a Tuple with `(nkon,nkoff,nkonb,nreach)` points to use.
+- `surpars = ` the physical parameters to use in the surrogate. It is strongly recommended
+  to not change the default values of `antigenconcen`, `antibodyconcen`, or `CP` unless you
+  really know what you are doing --  these default values are implicitly assumed in other
+  places.
+- `simpars = ` the simulation parameters to use (number of particles, simulations, domain
+  size, etc).
 """
 function save_surrogate(filename::String, surrogate_size, surpars::SurrogateParams, simpars::SimParams)
     surrogatetable = build_surrogate_serial(surrogate_size, surpars, simpars)
