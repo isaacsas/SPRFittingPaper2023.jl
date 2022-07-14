@@ -1,14 +1,14 @@
-using SPRFitting, JLD
+using Pkg
 
-
-(length(ARGS) < 4) && error("Usage: julia make_surrogate_parallel.jl metadatafile.jld outfile.jld startidx endidx")
-metadatafile = ARGS[1]
+(length(ARGS) < 5) && error("Usage: julia pkg_path make_surrogate_parallel.jl metadatafile.jld outfile.jld startidx endidx")
+pkgpath = ARGS[1]
+metadatafile = ARGS[2]
 isfile(metadatafile) || error("Error, metadata file named: $metadatafile note a valid file.")
-outfile = ARGS[2]
+outfile = ARGS[3]
 
 # the range of parameter values to simulate
-idxstart = parse(Int, ARGS[3])
-idxend   = parse(Int, ARGS[4])
+idxstart = parse(Int, ARGS[4])
+idxend   = parse(Int, ARGS[5])
 
 # BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates"
 # metadatafile = joinpath(BASEDIR, "test_metadata.jld")
@@ -18,10 +18,9 @@ idxend   = parse(Int, ARGS[4])
 
 ########################## END INPUT #############################
 
-surmetadata = load(metadatafile)
+Pkg.activate(pkgpath)
 
-# build the slice of the surrogate
-surrogate_data = build_surrogate_slice(surmetadata, idxstart, idxend)
+using SPRFitting, JLD
 
 # save the surrogate slice
-save_surrogate_slice(outfile, surrogate_data, idxstart, idxend)
+save_surrogate_slice(outfile, load(metadatafile), idxstart, idxend)

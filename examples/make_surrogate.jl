@@ -18,7 +18,7 @@ surrogate_size = (2,2,2,2,tsavelen)
 
 BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates"
 mkpath(BASEDIR)
-outfile = joinpath(BASEDIR, "tester.jld")
+outfile = joinpath(BASEDIR, "tester-new.jld")
 
 ########################## END INPUT #############################
 
@@ -26,8 +26,5 @@ surpars = SurrogateParams(; logkon_range, logkoff_range, logkonb_range, reach_ra
 tsave   = collect(range(0.0, tstop, tsavelen))
 simpars = SimParams(; tstop, tstop_AtoB, tsave)
 
-# build the surrogate
-surrogate = build_surrogate_serial(surrogate_size, surpars, simpars)
-
-# save the surrogate
-save_surrogate(outfile, surrogate)
+# build and save the surrogate
+save_surrogate(outfile, surrogate_size, surpars, simpars)
