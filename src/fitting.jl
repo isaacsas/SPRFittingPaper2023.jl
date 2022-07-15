@@ -45,7 +45,7 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
     end
 
     # calculate the ℓ₂ error
-    return sqrt(err)
+    return err
 end
 
 checkrange(rsur,ropt) = (rsur[1] <= ropt[1] <= ropt[2] <= rsur[2])
@@ -103,7 +103,9 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
     checkranges(sr, surrogate.surpars)
 
     # use a closure as bboptimize takes functions of a parameter vector only
-    bboptfun = optpars -> surrogate_sprdata_error(optpars, surrogate, aligneddat)
+    bboptfun = optpars -> let surrogate=surrogate, aligneddat = aligneddat
+            surrogate_sprdata_error(optpars, surrogate, aligneddat)
+        end
 
     # optimize for the best fitting parameters
     bboptres = bboptimize(bboptfun; SearchRange=sr, NumDimensions, Method, MaxSteps,
