@@ -9,7 +9,7 @@
 #$ -l h_rt=3:00:00
 
 # Send an email when the job finishes or if it is aborted (by default no email is sent).
-#$ -m ea
+#$ -m a
 
 # Give job a name
 #$ -N testsurrogate

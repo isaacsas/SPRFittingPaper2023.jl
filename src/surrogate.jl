@@ -66,8 +66,7 @@ end
 function Surrogate(lutdata::AbstractArray; surpars, simpars, surrogate_size=nothing)
     sursize = (surrogate_size === nothing) ? size(lutdata) : surrogate_size
     itp = interpolate(lutdata, BSpline(Linear()))
-    @show typeof(itp)
-    Surrogate(; surrogate_size, itp, surpars, simpars)
+    Surrogate(; surrogate_size=sursize, itp, surpars, simpars)
 end
 
 function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing)
@@ -92,7 +91,13 @@ function Surrogate(lutfile::String; rungc=true, surpars=nothing, simpars=nothing
         simpars′ = simpars
     end
 
-    surrogate = Surrogate(itpdata; surpars=surpars′, simpars=simpars′)
+    if haskey(lutdata, "surrogate_size")
+        surrogate_size = lutdata["surrogate_size"]
+    else
+        surrogate_size = nothing
+    end
+
+    surrogate = Surrogate(itpdata; surpars=surpars′, simpars=simpars′, surrogate_size)
 
     # release the lookup table from memory
     if rungc
