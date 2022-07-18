@@ -30,6 +30,8 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
 
     err = 0.0
     refabc = antibodyconcens[1]
+    surrogate_times = surrogate.simpars.tsave
+    tspan = last(surrogate_times) - first(surrogate_times)
     for (j,abc) in enumerate(antibodyconcens)
 
         # rescale the on rate to account for changing concentrations of antibody
@@ -38,8 +40,10 @@ function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::Al
 
         sprdata = refdata[j]
         for (i,t) in enumerate(times[j])
+            s = scaletoLUT(t, surrogate_times[1], length(surrogate_times), tspan)
+
             # should below be t + 1.0 to scale [0.0,T] to [1,T+1]?
-            newerr = 10.0^(optpars[5]) * surrogate.itp(q1,q2,q3,q4,t+1) - sprdata[i]
+            newerr = 10.0^(optpars[5]) * surrogate.itp(q1,q2,q3,q4,t) - sprdata[i]
             err += newerr * newerr
         end
     end
