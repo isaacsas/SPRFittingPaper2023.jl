@@ -2,6 +2,7 @@ using SPRFitting
 using BlackBoxOptim: best_fitness
 using LinearAlgebra
 using Plots
+using Optimization
 using OptimizationNLopt   # for fitting monovalent only
 
 ############ INPUT ############
