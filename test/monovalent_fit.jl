@@ -1,6 +1,6 @@
 using SPRFitting, Test, LinearAlgebra
-using Optimization
 using OptimizationNLopt
+using Optimization
 
 # manufacture data
 # parameters
@@ -18,7 +18,6 @@ ad = Optimization.AutoForwardDiff()
 tv = collect(range(0.0, tstop, length=601))
 times = [tv, tv[1:2:end], tv[2:2:end]]
 antibodyconcens = [25.0, 100.0, 150.0]
-aligneddat = SPRFitting.AlignedData(times, totbndv, antibodyconcens, CP)
 
 # forward solutions as data
 u = (kon, koff, CP)
@@ -33,6 +32,7 @@ for (i,abc) in enumerate(antibodyconcens)
 
     totbndv[i] = totbnd
 end
+aligneddat = SPRFitting.AlignedData(times, totbndv, antibodyconcens, CP)
 
 # using Plots
 # p = plot()
