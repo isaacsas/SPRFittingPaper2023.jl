@@ -192,7 +192,7 @@ Notes:
 - `filename = nothing` if set will cause the graph to be saved.
 """
 function visualisefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
-                      simpars::SimParams, filename=nothing)
+                      simpars::SimParams, filename=nothing, monofit=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
     params = copy(bbopt_output.method_output.population[1].params)
 
@@ -223,6 +223,33 @@ function visualisefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogat
     fig1
 end
 
+function visualisefit(monofit, aligneddat::AlignedData, toff::Float64, filename=nothing)
+    @unpack times,refdata,antibodyconcens = aligneddat
+
+    # plot aligned experimental data
+    fig1 = plot(; xlabel="time", ylabel="RU", legend=false)
+    for (i,sprcurve) in enumerate(refdata)
+        plot!(fig1, times[i], sprcurve, color="black")
+    end
+
+    # plot simulation data with fit parameters
+    u = 10.0 .^ monofit.u
+    for (i,abc) in enumerate(antibodyconcens)
+        ts = times[i]
+        totbnd = zeros(length(ts))
+        p = (abc,toff)
+        for (n,t) in enumerate(ts)
+            totbnd[n] = monovalent_total_bound(u, p, t)
+        end
+
+        plot!(fig1, times[i], totbnd)
+    end
+
+    (filename !== nothing) && savefig(fig1, filename)
+
+    fig1
+end
+
 
 """
     savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate, simpars::SimParams,
@@ -232,16 +259,18 @@ Saves the data, simulated data with fit parameters, and fit parameters in an
 XLSX spreadsheet with the given name.
 """
 function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
-                 simpars::SimParams, outfile)
+                 simpars::SimParams, outfile; monofit=nothing)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
 
-    savedata = Vector{Vector{Float64}}(undef, 3*length(antibodyconcens))
+    cols_per_time = (monofit === nothing) ? 3 : 4
+    savedata = Vector{Vector{Float64}}(undef, cols_per_time*length(antibodyconcens))
 
     params = copy(bbopt_output.method_output.population[1].params)
     abcref = antibodyconcens[1]
+    toff   = simpars.tstop_AtoB
     ps     = copy(params)
     for (j,abc) in enumerate(antibodyconcens)
-        idx = 3*(j-1) + 1
+        idx = cols_per_time*(j-1) + 1
 
         savedata[idx] = times[j]
         savedata[idx+1] = refdata[j]
@@ -255,16 +284,29 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
         ps[1] = params[1] + log10(abc/abcref)
         update_pars_and_run_spr_sim!(outputter, ps, simpars)
         savedata[idx+2] = means(outputter)
+
+        # monovalent fit
+        if monofit !== nothing
+            u = 10.0 .^ monofit.u
+            p = (abc, toff)
+            totbnd = zeros(length(times[j]))
+            for (n,t) in enumerate(times[j])
+                totbnd[n] = monovalent_total_bound(u, p, t)
+            end
+            savedata[idx+3] = totbnd
+        end
     end
 
     # headers for writing the simulation curves
     EH = ["Experimental Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
-    MH = ["Model Data $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
+    MH = ["Bivalent Fit $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
+    MMH = ["Monovalent Fit $(antibodyconcens[j]) nM" for j in 1:length(antibodyconcens)]
     headers = Vector{String}()
     for i in eachindex(antibodyconcens)
         push!(headers, "times")
         push!(headers, EH[i])
         push!(headers, MH[i])
+        (monofit !== nothing) && push!(headers, MMH[i])
     end
 
     # get parameter fits
@@ -306,8 +348,24 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
 
         # fitness
         row = last(rows) + 2
-        sheet[row,1] = "Fitness"
+        sheet[row,1] = "Bivalent Fitness"
         sheet[row,2] = bf
+        if monofit !== nothing
+            row += 1
+            sheet[row,1] = "Monovalent Fitness"
+            sheet[row,2] = monofit.minimum
+            sheet[row+2,1] = "Monofit return code:"
+            sheet[row+2,2] = string(monofit.retcode)
+        end
+
+        # monovalent fit
+        if monofit !== nothing
+            parnames = ["Monovalent fit parameters (physical):", "kon", "koff", "CP"]
+            rows = 1:length(parnames)
+            sheet[rows,7] = parnames
+            mono_biophys_ps = (10.0 .^ monofit.u)
+            sheet[rows,8] = ["", mono_biophys_ps...]
+        end
     end
 
     nothing

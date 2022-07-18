@@ -37,15 +37,15 @@ Notes:
 - `optpars = [log₁₀(kon), log₁₀(koff), log₁₀(CP)]`
 - `toff` should be the time that antibodies were removed from the system.
 """
-function monovalent_sprdata_error(optpars, aligned_data::AlignedData, toff)
-    @unpack times, refdata, antibodyconcens = aligned_data
+function monovalent_sprdata_error(optpars, pars::Union{Tuple, NamedTuple})
+    @unpack times, refdata, antibodyconcens = pars.aligneddat
     kon = 10.0 ^ optpars[1]
     koff = 10.0 ^ optpars[2]
     CP = 10.0 ^ optpars[3]
     err = 0.0
     @inbounds for (j,abc) in enumerate(antibodyconcens)
         u = (kon, koff, CP)
-        p = (abc, toff)
+        p = (abc, pars.toff)
         sprdata = refdata[j]
         @inbounds for (i,t) in enumerate(times[j])
             newerr = monovalent_total_bound(u, p, t) - sprdata[i]
@@ -57,6 +57,14 @@ function monovalent_sprdata_error(optpars, aligned_data::AlignedData, toff)
     return err
 end
 
-# function monovalent_fit_spr_data(method, alignneddat::AlignedData, x₀=[1.0,1.0,1.0]; kwargs...)
-# #    prob =
-# end
+function monovalent_fit_spr_data(method, aligneddat::AlignedData, toff, u₀;
+                                 ad = nothing, lb = nothing, ub = nothing, kwargs...)
+
+    optfun = if ad === nothing
+            OptimizationFunction(monovalent_sprdata_error)
+        else
+            OptimizationFunction(monovalent_sprdata_error, ad)
+        end
+    prob = OptimizationProblem(optfun, u₀, (; aligneddat, toff); lb, ub)
+    solve(prob, method; kwargs...)
+end
