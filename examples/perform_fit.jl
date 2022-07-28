@@ -2,8 +2,10 @@ using SPRFitting
 using BlackBoxOptim: best_fitness
 using LinearAlgebra
 using Plots
+
+# only needed if fitting monovalent too
+using OptimizationNLopt
 using Optimization
-using OptimizationNLopt   # for fitting monovalent only
 
 ############ INPUT ############
 
@@ -13,42 +15,49 @@ BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
 RAWDIR = joinpath(BASEDIR, "Aligned")
 OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_withmono")
 
-# high kon
-#lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_HigherKon_FourParameter_T600_TS150_NG30_Feb4.jld"
-lutfile = "/Users/isaacsas/data/surrogates/surrogate_slice_merged.jld"
-
-# low kon
-# lutfile  = joinpath(BASEDIR,"Surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld")
+# surrogate file
+lutfile = "/Users/isaacsas/data/surrogates/surrogate_high_and_low.jld"
+#lutfile = "/Users/isaacsas/data/surrogates/CombinedLUT_LowerKon_FourParameter_T600_TS150_NG30_Jan27.jld"
 
 # output control
-nfits       = 30   # how many fits to run and then take the minimum over
+nfits       = 100   # how many fits to run and then take the minimum over
 save_curves = true
 visualise   = true
-nsims       = 100  # number of simulations to use when plotting
+nsims       = 100   # number of simulations to use when plotting
 
 # monovalent fitting, set monovalent_optimizer=nothing if not desired
 monovalent_optimizer = NLopt.LD_LBFGS()
-lb = [-8.0, -8.0, -8.0]   # upper bounds on parameters in log space (kon,koff,CP)
-ub = [8.0, 8.0, 8.0]      # lower bounds on parameters in log space (kon,koff,CP)
+lb = [-8.0, -8.0, -8.0]   # lower bounds on parameters in log space (kon,koff,CP)
+ub = [8.0, 8.0, 8.0]      # upper bounds on parameters in log space (kon,koff,CP)
 ad = Optimization.AutoForwardDiff()   # set to nothing for a derivative-free method
 abstol = 1e-8
 reltol = 1e-8
 
 # optimizer parameter ranges (log space except reach) for use with surrogate
-#logkon_optrange  = (-5.0, -1.25)  # or -2.5 in old file
-logkon_optrange = (-3.0, -1.25)
-logkoff_optrange = (-4.0, -1.0)
-logkonb_optrange = (-3.0, 1.0)
-reach_optrange   = (2.0, 35.0)
+# logkon_optrange  = (-5.0, -1.25)  # or -2.5 in old file
+# comment these for the merged surrogate
+# logkon_optrange = (-3.0, -1.25)
+# logkoff_optrange = (-4.0, -1.0)
+# logkonb_optrange = (-3.0, 1.0)
+# reach_optrange   = (2.0, 35.0)
 logCP_optrange   = (1.0, 5.0)
 
 ############################ END INPUT ###############################
 
-# the optimizer's parameter ranges (all log space except reach)
-optpar_ranges = [logkon_optrange,logkoff_optrange,logkonb_optrange,reach_optrange,logCP_optrange]
-
 # load the surrogate
 surrogate = Surrogate(lutfile)
+sps = surrogate.surpars
+
+# we never have more than six curves, so decrease the upper bound by 2^6 to ensure the rate
+# never goes outside the surrogate when it is increased during fitting
+# logkon_optrange = (sps.logkon_range[1], sps.logkon_range[2] - log10(2^6))
+
+# the optimizer's parameter ranges (all log space except reach)
+# for use with merged surrogate
+optpar_ranges = [logkon_optrange, sps.logkoff_range, sps.logkonb_range, sps.reach_range, logCP_optrange]
+# for use with low surrogate
+# optpar_ranges = [logkon_optrange, logkoff_optrange, logkonb_optrange, reach_optrange, logCP_optrange]
+
 
 # this should create the directory if it doesn't exist
 mkpath(OUTDIR)
