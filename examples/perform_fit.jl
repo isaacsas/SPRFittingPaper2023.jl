@@ -10,10 +10,9 @@ using Optimization
 ############ INPUT ############
 
 # file directories
-#BASEDIR = joinpath(@__DIR__, "figures and data")
 BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
 RAWDIR = joinpath(BASEDIR, "Aligned")
-OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_withmono")
+OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_adjusted_kon")
 
 # surrogate file
 lutfile = "/Users/isaacsas/data/surrogates/surrogate_high_and_low.jld"
@@ -54,7 +53,8 @@ sps = surrogate.surpars
 
 # the optimizer's parameter ranges (all log space except reach)
 # for use with merged surrogate
-optpar_ranges = [logkon_optrange, sps.logkoff_range, sps.logkonb_range, sps.reach_range, logCP_optrange]
+optpar_ranges = [logCP_optrange]
+#optpar_ranges = [logkon_optrange, sps.logkoff_range, sps.logkonb_range, sps.reach_range, logCP_optrange]
 # for use with low surrogate
 # optpar_ranges = [logkon_optrange, logkoff_optrange, logkonb_optrange, reach_optrange, logCP_optrange]
 

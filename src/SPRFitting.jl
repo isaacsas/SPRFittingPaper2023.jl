@@ -1,6 +1,6 @@
 module SPRFitting
 
-using DocStringExtensions, UnPack
+using DocStringExtensions, UnPack, Setfield
 using DataStructures: MutableBinaryHeap, top_with_handle, DataStructures
 using CSV: File, CSV
 using Tables, Random, StaticArrays

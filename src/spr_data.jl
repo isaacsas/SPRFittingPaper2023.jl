@@ -39,7 +39,8 @@ function get_aligned_data(fname, antigenconcen=nothing)
     cf = CSV.File(fname)
     headers = Tables.columnnames(cf)
     nabcs   = div(length(headers), 2)
-    antibodyconcens = parse.(Float64, map(String, headers[2:2:end]))
+    hstrs = map(first ∘ Base.Fix2(split, "_") ∘ String, headers)
+    antibodyconcens = parse.(Float64, hstrs[2:2:end])
 
     cols = Tables.columns(cf)
     idx  = 1
