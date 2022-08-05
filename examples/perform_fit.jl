@@ -8,7 +8,7 @@ using Plots
 # file directories
 BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
 RAWDIR = joinpath(BASEDIR, "Aligned")
-OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_new_opt_struct")
+OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_test_optimizatiojl")
 
 # surrogate file
 lutfile = "/Users/isaacsas/data/surrogates/surrogate_high_and_low.jld"
@@ -53,12 +53,12 @@ for (n,file) in enumerate(allfiles)
         aligneddat = get_aligned_data(joinpath(RAWDIR, file))
 
         # find the best fit parameters
-        bbopt_output,best_pars = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+        optsol, best_pars = fit_spr_data(surrogate, aligneddat, optpar_ranges)
         for i in 2:nfits
             println("\nRunning fit: ", i, "/", nfits)
-            bbopt_output_new, best_pars_new = fit_spr_data(surrogate, aligneddat, optpar_ranges)
-            if best_fitness(bbopt_output_new) < best_fitness(bbopt_output)
-                bbopt_output = bbopt_output_new
+            optsol_new, best_pars_new = fit_spr_data(surrogate, aligneddat, optpar_ranges)
+            if optsol_new.minimum < optsol.minimum
+                optsol = optsol_new
                 best_pars = best_pars_new
             end
         end
@@ -83,7 +83,7 @@ for (n,file) in enumerate(allfiles)
         if visualise
             print("saving plot...")
             figfile = joinpath(OUTDIR, filename * "_fit_curves.png")
-            visualisefit(bbopt_output, aligneddat, surrogate, simpars, figfile)
+            visualisefit(optsol, aligneddat, surrogate, simpars, figfile)
             if monofit !== nothing
                 figfile = joinpath(OUTDIR, filename * "_fit_curves_monovalent.png")
                 visualisefit(monofit, aligneddat, simpars.tstop_AtoB, figfile)
@@ -93,7 +93,7 @@ for (n,file) in enumerate(allfiles)
         if save_curves
             print("saving spreadsheet...")
             curvefile = joinpath(OUTDIR, filename)
-            savefit(bbopt_output, aligneddat, surrogate, simpars, curvefile; monofit)
+            savefit(optsol, aligneddat, surrogate, simpars, curvefile; monofit)
             println("done")
         end
     end

@@ -14,13 +14,25 @@ struct Optimiser{Q,R,S,T,U,V}
 end
 
 function Optimiser(method; lb = nothing, ub = nothing, ad = nothing,
-                           probkwargs = nothing, solverkwargs = nothing)
+                           probkwargs = NamedTuple(), solverkwargs = NamedTuple())
     Optimiser(method, ad, lb, ub, probkwargs, solverkwargs)
 end
 
 
 function default_mono_optimiser(lb, ub; kwargs...)
     Optimiser(NLopt.LD_LBFGS(); lb, ub, ad = Optimization.AutoForwardDiff(), kwargs...)
+end
+
+function default_bivalent_optimiser(lb, ub; maxiters = 5000, TraceMode = :compact,
+                                    TraceInterval = 10.0, probkwargs = NamedTuple(),
+                                    solverkwargs = NamedTuple())
+    xneskwargs = (; maxiters, TraceMode, TraceInterval)
+    solverkwargs = if solverkwargs === nothing
+        xneskwargs
+    else
+        merge(solverkwargs, xneskwargs)
+    end
+    Optimiser(BBO_xnes(); lb, ub, probkwargs, solverkwargs)
 end
 
 @inline scaletoLUT(par, parmin, sz, width) = (par-parmin)*(sz-1)/width + 1
@@ -33,11 +45,12 @@ simulated kinetics curve from the surrogate, returning the ``L^2`` error against
 the provided data.
 
 """
-function surrogate_sprdata_error(optpars, surrogate::Surrogate, aligned_data::AlignedData)
+function surrogate_sprdata_error(optpars, pars)
+    surrogate = pars.surrogate
     surpars = surrogate.surpars
     sursize = surrogate.surrogate_size
 
-    @unpack times, refdata, antibodyconcens = aligned_data
+    @unpack times, refdata, antibodyconcens = pars.aligneddat
 
     # width of each range of parameters in the surrogate
     dq1 = surpars.logkon_range[2] - surpars.logkon_range[1]
@@ -102,12 +115,7 @@ end
 
 """
     fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange;
-                        NumDimensions=5,
-                        Method=:xnes,
-                        MaxSteps=5000,
-                        TraceMode=:compact,
-                        TraceInterval=10.0,
-                        kwargs...)
+                 optimiser = nothing, u₀ = nothing)
 
 Find best fit parameters of the surrogate to the given data.
 
@@ -123,17 +131,13 @@ Notes:
   ```
   In the latter case the other parameter ranges are set equal to the range
   within the surrogate.
-- Uses `xnes` from BlackBoxOptim by default.
-- kwargs are passed through to the optimizer.
+- Uses `default_bivalent_optimiser` by default if `optimiser = nothing`. Otherwise pass an
+  [`Optimiser`](@ref) object.
+- `u₀` is an optional guess for the inital search point, methods may or may not use.
 - Returns the best fit optimization object and the best fit (bio) parameters as a tuple.
 """
 function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange;
-                      NumDimensions=5,
-                      Method=:xnes,
-                      MaxSteps=5000,
-                      TraceMode=:compact,
-                      TraceInterval=10.0,
-                      kwargs...)
+                      optimiser = nothing, u₀ = nothing)
 
     if length(searchrange) == 1
         sp = surrogate.surpars
@@ -146,26 +150,37 @@ function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange
     # adjust logkon[2] to ensure fitting stays within the surrogate
     sr[1] = rescale_logkon_max(sr[1], sp.logkon_range, aligneddat.antibodyconcens)
 
-    # use a closure as bboptimize takes functions of a parameter vector only
-    bboptfun = optpars -> let surrogate=surrogate, aligneddat = aligneddat
-            surrogate_sprdata_error(optpars, surrogate, aligneddat)
-        end
+    lb = map(first, sr)
+    ub = map(last, sr)
 
-    # optimize for the best fitting parameters
-    bboptres = bboptimize(bboptfun; SearchRange=sr, NumDimensions, Method, MaxSteps,
-                          TraceMode, TraceInterval, kwargs...) #,Tracer=:silent)
+    if (optimiser === nothing)
+        optimiser = default_bivalent_optimiser(lb, ub)
+    else
+        @set! optimiser.lb = lb
+        @set! optimiser.ub = ub
+    end
+
+    optfun = if optimiser.ad === nothing
+        OptimizationFunction(surrogate_sprdata_error)
+    else
+        OptimizationFunction(surrogate_sprdata_error, optimiser.ad)
+    end
+
+    pars = (; surrogate, aligneddat)
+    optprob = OptimizationProblem(optfun, u₀, pars; lb, ub, optimiser.probkwargs...)
+    sol = solve(optprob, optimiser.method; optimiser.solverkwargs...)
 
     # calculate the bestfit biological parameters
-    bestpars = bboptpars_to_physpars(best_candidate(bboptres), aligneddat, surrogate)
+    bestpars = optpars_to_physpars(sol.u, aligneddat, surrogate)
 
-    bboptres, bestpars
+    sol, bestpars
 end
 
 """
-    bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
+    optpars_to_physpars(optpars, antibodyconcen, antigenconcen,
                                 surrogate_antigenconcen)
 
-    bboptpars_to_physpars(bboptpars, aligned_data::AlignedData, surrogate::Surrogate)
+    optpars_to_physpars(optpars, aligned_data::AlignedData, surrogate::Surrogate)
 
 Converts parameters vector from BlackBoxOptim to physical parameters, converting
 the reach from simulation to physical values.
@@ -180,18 +195,18 @@ Notes:
   ``[AGC]_e`` is the concentration used in experiments.
 - Assumes these two concentrations have consistent units.
 """
-function bboptpars_to_physpars(bboptpars, antibodyconcen, antigenconcen,
+function optpars_to_physpars(optpars, antibodyconcen, antigenconcen,
                                surrogate_antigenconcen)
-    kon   = (10.0 ^ bboptpars[1]) / antibodyconcen  # make bimolecular
-    koff  = (10.0 ^ bboptpars[2])
-    konb  = (10.0 ^ bboptpars[3])
-    reach = bboptpars[4] * cbrt(surrogate_antigenconcen/antigenconcen)
-    CP    = (10.0 ^ bboptpars[5])
+    kon   = (10.0 ^ optpars[1]) / antibodyconcen  # make bimolecular
+    koff  = (10.0 ^ optpars[2])
+    konb  = (10.0 ^ optpars[3])
+    reach = optpars[4] * cbrt(surrogate_antigenconcen/antigenconcen)
+    CP    = (10.0 ^ optpars[5])
     [kon,koff,konb,reach,CP]
 end
 
-function bboptpars_to_physpars(bboptpars, ad::AlignedData, sur::Surrogate)
-    bboptpars_to_physpars(bboptpars, ad.antibodyconcens[1], ad.antigenconcen,
+function optpars_to_physpars(optpars, ad::AlignedData, sur::Surrogate)
+    optpars_to_physpars(optpars, ad.antibodyconcens[1], ad.antigenconcen,
                           sur.surpars.antigenconcen)
 end
 
@@ -226,7 +241,7 @@ function update_pars_and_run_spr_sim!(outputter, logpars, simpars::SimParams)
 end
 
 """
-    visualisefit(bbopt_output, aligneddat::AlignedData, simpars::SimParams,
+    visualisefit(optsol, aligneddat::AlignedData, simpars::SimParams,
                  surrogate::Surrogate, filename=nothing)
 
 Plots fit between data and simulated curves using fitted parameters across a set
@@ -235,10 +250,10 @@ of antibody concentrations.
 Notes:
 - `filename = nothing` if set will cause the graph to be saved.
 """
-function visualisefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
+function visualisefit(optsol, aligneddat::AlignedData, surrogate::Surrogate,
                       simpars::SimParams, filename=nothing, monofit=nothing)
     @unpack times,refdata,antibodyconcens = aligneddat
-    params = copy(bbopt_output.method_output.population[1].params)
+    params = copy(optsol.u)
 
     # plot aligned experimental data
     fig1 = plot(; xlabel="time", ylabel="RU", legend=false)
@@ -296,20 +311,20 @@ end
 
 
 """
-    savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate, simpars::SimParams,
+    savefit(optsol, aligneddat::AlignedData, surrogate::Surrogate, simpars::SimParams,
             outfile)
 
 Saves the data, simulated data with fit parameters, and fit parameters in an
 XLSX spreadsheet with the given name.
 """
-function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
+function savefit(optsol, aligneddat::AlignedData, surrogate::Surrogate,
                  simpars::SimParams, outfile; monofit=nothing)
     @unpack times, refdata, antibodyconcens, antigenconcen = aligneddat
 
     cols_per_time = (monofit === nothing) ? 3 : 4
     savedata = Vector{Vector{Float64}}(undef, cols_per_time*length(antibodyconcens))
 
-    params = copy(bbopt_output.method_output.population[1].params)
+    params = copy(optsol.u)
     abcref = antibodyconcens[1]
     toff   = simpars.tstop_AtoB
     ps     = copy(params)
@@ -354,8 +369,8 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
     end
 
     # get parameter fits
-    bs = best_candidate(bbopt_output)
-    bf = best_fitness(bbopt_output)
+    bestpars = copy(optsol.u)
+    bestfitness = optsol.minimum
 
     # Write the fits to a spreadsheet
     fname = outfile * "_fit.xlsx"
@@ -377,7 +392,7 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
         logparnames = ["Best fit parameters (internal):","logkon","logkoff","logkonb","reach","logCP"]
         rows = 1:length(logparnames)
         sheet[rows,1] = logparnames
-        sheet[rows,2] = ["",bs...]
+        sheet[rows,2] = ["", bestpars...]
 
         # biophysical parameters
         parnames = ["Best fit parameters (physical):","kon","koff","konb","reach","CP"]
@@ -387,13 +402,13 @@ function savefit(bbopt_output, aligneddat::AlignedData, surrogate::Surrogate,
         simagc = inv_cubic_nm_to_muM(getantigenconcen(simpars))
         @assert isapprox(simagc, surrogate.surpars.antigenconcen, atol=1e-12)
 
-        pars = bboptpars_to_physpars(bs, aligneddat, surrogate)
-        sheet[rows,5] = ["",pars...]
+        pars = optpars_to_physpars(bestpars, aligneddat, surrogate)
+        sheet[rows,5] = ["", pars...]
 
         # fitness
         row = last(rows) + 2
         sheet[row,1] = "Bivalent Fitness"
-        sheet[row,2] = bf
+        sheet[row,2] = bestfitness
         if monofit !== nothing
             row += 1
             sheet[row,1] = "Monovalent Fitness"

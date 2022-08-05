@@ -32,7 +32,7 @@ AlignedData
 get_aligned_data
 ```
 
-## Surrogate 
+## Surrogate
 
 ```@docs
 SurrogateParams
@@ -41,11 +41,11 @@ build_surrogate_serial
 save_surrogate
 ```
 
-## Fitting 
+## Fitting
 
 ```@docs
 fit_spr_data
-bboptpars_to_physpars
+optpars_to_physpars
 savefit
 visualisefit
 ```
@@ -53,6 +53,6 @@ visualisefit
 # Private API Functions
 
 ```@docs
-surrogate_sprdata_error 
+surrogate_sprdata_error
 update_pars_and_run_spr_sim!
 ```
