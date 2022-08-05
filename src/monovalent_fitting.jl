@@ -57,14 +57,24 @@ function monovalent_sprdata_error(optpars, pars::Union{Tuple, NamedTuple})
     return err
 end
 
-function monovalent_fit_spr_data(method, aligneddat::AlignedData, toff, u₀;
-                                 ad = nothing, lb = nothing, ub = nothing, kwargs...)
+function monovalent_fit_spr_data(optimiser::Optimiser, aligneddat::AlignedData, toff, u₀)
+    @unpack method, ad, lb, ub, probkwargs, solverkwargs = optimiser
 
     optfun = if ad === nothing
             OptimizationFunction(monovalent_sprdata_error)
         else
             OptimizationFunction(monovalent_sprdata_error, ad)
         end
-    prob = OptimizationProblem(optfun, u₀, (; aligneddat, toff); lb, ub)
-    solve(prob, method; kwargs...)
+
+    prob = if probkwargs === nothing
+        OptimizationProblem(optfun, u₀, (; aligneddat, toff); lb, ub)
+    else
+        OptimizationProblem(optfun, u₀, (; aligneddat, toff); lb, ub, probkwargs...)
+    end
+
+    if solverkwargs === nothing
+        solve(prob, method)
+    else
+        solve(prob, method; solverkwargs...)
+    end
 end

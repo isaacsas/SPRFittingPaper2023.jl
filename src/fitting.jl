@@ -1,3 +1,28 @@
+struct Optimiser{Q,R,S,T,U,V}
+    """The Optimization.jl method to use."""
+    method::Q
+    """The AD method to use, nothing by default."""
+    ad::R
+    """Lower bounds on the parameters; needed by many methods."""
+    lb::S
+    """Upper bounds on the parameters; needed by many methods."""
+    ub::T
+    """Named tuple of additional keyword arguments to `OptimizationProblem``."""
+    probkwargs::U
+    """Name tuple of additional keyword arguments to `solve`. Typically method-specific settings."""
+    solverkwargs::V
+end
+
+function Optimiser(method; lb = nothing, ub = nothing, ad = nothing,
+                           probkwargs = nothing, solverkwargs = nothing)
+    Optimiser(method, ad, lb, ub, probkwargs, solverkwargs)
+end
+
+
+function default_optimiser(lb, ub; kwargs...)
+    Optimiser(NLopt.LD_LBFGS(); lb, ub, ad = Optimization.AutoForwardDiff(), kwargs...)
+end
+
 @inline scaletoLUT(par, parmin, sz, width) = (par-parmin)*(sz-1)/width + 1
 
 """
