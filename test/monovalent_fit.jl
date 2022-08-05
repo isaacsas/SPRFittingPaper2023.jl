@@ -1,5 +1,4 @@
 using SPRFitting, Test, LinearAlgebra
-using OptimizationNLopt
 using Optimization
 
 # manufacture data
@@ -11,9 +10,6 @@ toff = 150.0
 tstop = 600.0
 lb = [-8.0, -8.0, -8.0]
 ub = [8.0, 8.0, 8.0]
-
-method = NLopt.LD_LBFGS()
-ad = Optimization.AutoForwardDiff()
 
 tv = collect(range(0.0, tstop, length=601))
 times = [tv, tv[1:2:end], tv[2:2:end]]
@@ -43,6 +39,7 @@ aligneddat = SPRFitting.AlignedData(times, totbndv, antibodyconcens, CP)
 
 # fit to forward solutions
 u₀ = log10.(rand(3))
-sol = monovalent_fit_spr_data(method, aligneddat, toff, u₀; ad, lb, ub, abstol=1e-12, reltol=1e-10)
+mono_optimiser = default_mono_optimiser(lb, ub; solverkwargs = (abstol = 1e-12, reltol = 1e-10))
+sol = monovalent_fit_spr_data(mono_optimiser, aligneddat, toff, u₀)
 ps = 10.0 .^ sol.u
 @test norm(ps - [kon,koff,CP], Inf) < 1e-10
