@@ -30,7 +30,7 @@ export SurrogateParams, Surrogate, save_surrogate, save_surrogate_metadata,
 
 include("fitting.jl")
 export fit_spr_data, bboptpars_to_physpars, visualisefit, savefit
-export Optimiser, default_optimiser
+export Optimiser, default_mono_optimiser
 
 include("monovalent_fitting.jl")
 export monovalent_fit_spr_data

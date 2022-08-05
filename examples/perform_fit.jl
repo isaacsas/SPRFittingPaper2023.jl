@@ -22,7 +22,7 @@ nsims       = 100   # number of simulations to use when plotting
 # monovalent fitting, set mono_optimiser=nothing if not desired
 lb = [-8.0, -8.0, -8.0]   # lower bounds on parameters in log space (kon,koff,CP)
 ub = [8.0, 8.0, 8.0]      # upper bounds on parameters in log space (kon,koff,CP)
-mono_optimiser = default_optimiser(lb, ub; solverkwargs = (abstol = 1e-8, reltol = 1e-8))
+mono_optimiser = default_mono_optimiser(lb, ub; solverkwargs = (abstol = 1e-8, reltol = 1e-8))
 
 # optimizer parameter ranges (log space except reach) for use with surrogate
 logCP_optrange   = (1.0, 5.0)

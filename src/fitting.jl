@@ -19,7 +19,7 @@ function Optimiser(method; lb = nothing, ub = nothing, ad = nothing,
 end
 
 
-function default_optimiser(lb, ub; kwargs...)
+function default_mono_optimiser(lb, ub; kwargs...)
     Optimiser(NLopt.LD_LBFGS(); lb, ub, ad = Optimization.AutoForwardDiff(), kwargs...)
 end
 
