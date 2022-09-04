@@ -139,13 +139,13 @@ Notes:
 function fit_spr_data(surrogate::Surrogate, aligneddat::AlignedData, searchrange;
                       optimiser = nothing, u₀ = nothing)
 
+    sp = surrogate.surpars
     if length(searchrange) == 1
-        sp = surrogate.surpars
         sr = [sp.logkon_range, sp.logkoff_range, sp.logkonb_range, sp.reach_range, searchrange[1]]
     else
         sr = deepcopy(searchrange)
     end
-    checkranges(sr, surrogate.surpars)
+    checkranges(sr, sp)
 
     # adjust logkon[2] to ensure fitting stays within the surrogate
     sr[1] = rescale_logkon_max(sr[1], sp.logkon_range, aligneddat.antibodyconcens)
