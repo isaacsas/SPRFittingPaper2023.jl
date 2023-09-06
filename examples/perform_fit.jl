@@ -6,12 +6,18 @@ using Plots
 ############ INPUT ############
 
 # file directories
-BASEDIR = "/Users/isaacsas/data/2022-06-07 - FD11A_Data"
-RAWDIR = joinpath(BASEDIR, "Aligned")
-OUTDIR = joinpath(BASEDIR, "mergetest_mysurrogate_test_optimizatiojl")
+BASEDIR = joinpath("..", "data")
+
+# folder of input SPR data to fit
+# we fit each input csv in the folder
+# assumes fname has the form "anytext-ANTIGENCONCENVALUE_aligned.csv"
+RAWDIR = joinpath(BASEDIR, "input_spr_data")
+
+# location of output fitted parameter spreadsheets
+OUTDIR = joinpath(BASEDIR, "test_output")
 
 # surrogate file
-lutfile = "/Users/isaacsas/data/surrogates/surrogate_high_and_low.jld"
+lutfile = joinpath(BASEDIR, "surrogate_slice_merged.jld")
 
 # output control
 nfits       = 100   # how many fits to run and then take the minimum over

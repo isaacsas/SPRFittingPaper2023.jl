@@ -1,11 +1,11 @@
 #! /bin/bash
 
 PKGPATH="/project/fpkmc3d/.julia_sai/dev/SPRFitting"
-METADATAFILE="/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_metadata.jld"
-OUTFILEBASENAME="/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_slice"
+METADATAFILE="/project/fpkmc3d/surrogates/tests/test_metadata.jld"
+OUTFILEBASENAME="/project/fpkmc3d/surrogates/tests/test_slice"
 JULIASCRIPT="${PKGPATH}/examples/make_surrogate_parallel.jl"
-NUMPARAMSETS=1512000
-NCPUS=1200
+NUMPARAMSETS=8
+NCPUS=4
 
 let IDXINCREMENT=$NUMPARAMSETS/$NCPUS
 let dn=$IDXINCREMENT-1
