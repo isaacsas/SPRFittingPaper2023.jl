@@ -12,6 +12,9 @@ let dn=$IDXINCREMENT-1
 let idx=1
 for (( n=1;n<=$NUMPARAMSETS;n+=$IDXINCREMENT)); do
     let last=$n+$dn
-    qsub run_sim.sh "$JULIASCRIPT" "$PKGPATH" "$METADATAFILE" "${OUTFILEBASENAME}_${idx}.jld" $n $last
+    if [ $idx -eq 451 ]
+    then
+        qsub run_sim.sh "$JULIASCRIPT" "$PKGPATH" "$METADATAFILE" "${OUTFILEBASENAME}_${idx}.jld" $n $last
+    fi
     let idx+=1
 done
