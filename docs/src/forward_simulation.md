@@ -2,7 +2,7 @@
 In this tutorial we will show how to run forward model simulations given a set of parameters and plot the amount of bound antibodies.
 
 ## Tutorial Setup
-Let's first installing the packages we need in a clean environment:
+Let's first install the packages we need in a clean environment:
 ```julia
 using Pkg
 
