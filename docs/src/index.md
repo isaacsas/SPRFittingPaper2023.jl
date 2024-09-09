@@ -4,7 +4,7 @@ SPRFittingPaper2023.jl provides a library of functions that were used in fitting
 
 1. A forward solver for the particle-based jump process reaction model for
    bivalent antibody-antigen SPR interactions (in both two and three dimesions).
-2. Functionality for building the surrogate model approximation the
+2. Functionality for building the surrogate model approximation to the
    particle-based jump process model over a portion of parameter space.
 3. Functionality for fitting the surrogate model to SPR data sets to produce
    estimates for the biophysical parameters.
