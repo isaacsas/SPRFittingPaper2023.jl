@@ -28,6 +28,7 @@ You can use the package manager or "Pkg.add" to add any other needed packages to
 that environment.
 
 
+
 ## Running in parallel
 1. Save the metadata for the surrogate via modifying and running `examples/make_surrogate_metadata.jl`.
 2. Modify and run `examples/make_slices.sh` to batch the surrogate data construction for your cluster.
