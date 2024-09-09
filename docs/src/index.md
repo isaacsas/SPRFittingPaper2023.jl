@@ -11,6 +11,23 @@ SPRFittingPaper2023.jl provides a library of functions that were used in fitting
 
 For each of these components we provide a tutorial on their use as part of this documentation. Readers interested in our general methodology should consult [1].
 
+## Installation
+To install into your main Julia environment
+```julia
+using Pkg
+Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
+```
+It is often better to first create a new, clean environment in the directory where
+you'll have your fitting script. Start Julia in that directory and then
+```julia
+using Pkg
+Pkg.activate("Environment_Name")
+Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
+```
+You can use the package manager or "Pkg.add" to add any other needed packages to
+that environment.
+
+
 ## Running in parallel
 1. Save the metadata for the surrogate via modifying and running `examples/make_surrogate_metadata.jl`.
 2. Modify and run `examples/make_slices.sh` to batch the surrogate data construction for your cluster.

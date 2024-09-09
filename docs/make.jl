@@ -9,8 +9,9 @@ makedocs(
     doctest = false,
     clean = true,
     pages = Any[
-        "Home" => "index.md" #,
-        # "API" => "SPRFittingPaper2023_api.md"
+        "Home" => "index.md",
+        "Forward Model" => "forward_simulation.md",
+        "API" => "SPRFitting_api.md"
     ],
     warnonly = [:missing_docs]
 )
