@@ -16,7 +16,7 @@ makedocs(
     warnonly = [:missing_docs]
 )
 
-# deploydocs(
-#    repo = "github.com/isaacsas/SPRFittingPaper2023.jl.git";
-#    push_preview = true
-# )
+deploydocs(
+   repo = "github.com/isaacsas/SPRFittingPaper2023.jl.git";
+   push_preview = true
+)
