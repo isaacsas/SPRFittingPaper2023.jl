@@ -8,8 +8,8 @@ We begin by installing the packages we need in a clean environment:
 ```julia
 using Pkg
 
-# create a new environment for the forward model simulation
-Pkg.activate("fwd_sim_env") 
+# create a new environment for the surrogate constructions
+Pkg.activate("surrogate_env") 
 Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
 Pkg.add("JLD")
 ```
