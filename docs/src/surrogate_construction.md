@@ -19,9 +19,6 @@ We first demonstrate how to build a (small) surrogate in serial (i.e. on a
 single CPU core). We start by loading the needed packages:
 ```@example serialsur
 using SPRFittingPaper2023, JLD
-
-# import a useful but non-exported function:
-using SPRFittingPaper2023
 ```
 
 We next define the parameter ranges we wish to tabulate the surrogate over.
