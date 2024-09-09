@@ -132,7 +132,7 @@ Notes:
   In the latter case the other parameter ranges are set equal to the range
   within the surrogate.
 - Uses `default_bivalent_optimiser` by default if `optimiser = nothing`. Otherwise pass an
-  [`Optimiser`](@ref) object.
+  `Optimiser` object.
 - `u₀` is an optional guess for the inital search point, methods may or may not use.
 - Returns the best fit optimization object and the best fit (bio) parameters as a tuple.
 """
