@@ -1,7 +1,8 @@
 # Forward Model Simulation
 In this tutorial we will show how to run forward model simulations given a set of parameters and plot the amount of bound antibodies.
 
-We begin by installing the packages we need in a clean environment:
+## Tutorial Setup
+Let's first installing the packages we need in a clean environment:
 ```julia
 using Pkg
 
@@ -12,7 +13,8 @@ Pkg.add("Plots")
 Pkg.add("CSV""
 ```
 
-We now load the needed packages:
+## Running Forward Simulations
+We begin by loading the needed packages:
 ```@example fwdsim
 using SPRFittingPaper2023, Plots, CSV
 
@@ -30,13 +32,13 @@ a cube, our standard model for bivalent SPR experiments. We first specify the
 biophysical parameters to use in our simulations and collect them in a
 [`BioPhysParams`](@ref) structure:
 ```@example fwdsim
-antigenconcen   = 13.8
-antibodyconcens = [25.0, 100.0] 
-kon = 5.286e-05
-koff = 0.040868575
-konb =  0.7801815
-reach = 31.89884387
-CP = 128.569235     # coefficient of proprotionality to fit the SPR data
+antigenconcen   = 13.8           # assumed in μM
+antibodyconcens = [25.0, 100.0]  # assumed in nM
+kon = 5.286e-05                  # assumed in 1 / (nM * sec)
+koff = 0.040868575               # assumed in 1 / sec
+konb =  0.7801815                # assumed in 1 / sec
+reach = 31.89884387              # assumed in nm
+CP = 128.569235     # coefficient of proportionality to fit the SPR data
 biopars = BioPhysParams(; kon, koff, konb, reach, antigenconcen, CP,
                         antibodyconcen = antibodyconcens[1])
 ```
