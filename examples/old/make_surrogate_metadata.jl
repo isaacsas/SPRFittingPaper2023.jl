@@ -1,4 +1,4 @@
-using SPRFitting, JLD
+using SPRFittingPaper2023, JLD
 
 # metadatafile = ARGS[1]
 

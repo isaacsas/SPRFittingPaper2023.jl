@@ -1,4 +1,4 @@
-using SPRFitting, Test, LinearAlgebra
+using SPRFittingPaper2023, Test, LinearAlgebra
 using Optimization
 
 # manufacture data
@@ -23,12 +23,12 @@ for (i,abc) in enumerate(antibodyconcens)
     totbnd = zeros(length(ts))
     p = (abc, toff)
     for (n,t) in enumerate(ts)
-        totbnd[n] = SPRFitting.monovalent_total_bound(u, p, t)
+        totbnd[n] = SPRFittingPaper2023.monovalent_total_bound(u, p, t)
     end
 
     totbndv[i] = totbnd
 end
-aligneddat = SPRFitting.AlignedData(times, totbndv, antibodyconcens, CP)
+aligneddat = SPRFittingPaper2023.AlignedData(times, totbndv, antibodyconcens, CP)
 
 # using Plots
 # p = plot()

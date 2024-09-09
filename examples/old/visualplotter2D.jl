@@ -1,4 +1,4 @@
-using SPRFitting
+using SPRFittingPaper2023
 using Plots
 using DataFrames, Printf, CSV, LinearAlgebra
 using UnPack
@@ -61,7 +61,7 @@ function makeplots(biopars, simpars, reach, antibodyconcens)
         biopars.antibodyconcen = antibodyconcen
         output = TotalBoundOutputter(numsavepts)
         run_spr_sim!(output, biopars, simpars)
-        push!(SD, SPRFitting.means(output))
+        push!(SD, SPRFittingPaper2023.means(output))
     end
 
     # plot circles at initial locations
@@ -72,7 +72,7 @@ function makeplots(biopars, simpars, reach, antibodyconcens)
         for j in 1:N
             if i==j
             else
-                if SPRFitting.periodic_dist_sq(initlocs[i], initlocs[j], L) < reach^2
+                if SPRFittingPaper2023.periodic_dist_sq(initlocs[i], initlocs[j], L) < reach^2
                     mono=0
                 end
             end

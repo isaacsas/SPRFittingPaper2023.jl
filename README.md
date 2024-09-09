@@ -1,18 +1,18 @@
-# SPRFitting - Tools for fitting bivalent antibody SPR assays
+# SPRFittingPaper2023 - Tools for fitting bivalent antibody SPR assays
 
 
 ## Installation
 To install into your main Julia environment
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.git")
+Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
 ```
 It is often better to first create a new, clean environment in the directory where
 you'll have your fitting script. Start Julia in that directory and then
 ```julia
 using Pkg
 Pkg.activate("EnvName")
-Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.git")
+Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
 ```
 You can use the package manager or "Pkg.add" to add any other needed packages to
 that environment.

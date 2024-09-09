@@ -1,4 +1,4 @@
-using SPRFitting, JLD
+using SPRFittingPaper2023, JLD
 
 METADATAFILE = "/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_metadata.jld"
 OUTFILEBASENAME = "/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_slice"

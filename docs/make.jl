@@ -1,20 +1,21 @@
 using Documenter
-using SPRFitting
+using SPRFittingPaper2023
 
 makedocs(
-    sitename = "SPRFitting.jl",
+    sitename = "SPRFittingPaper2023.jl",
     authors = "Samuel Isaacson",
-    format = Documenter.HTML(mathengine=Documenter.Writers.HTMLWriter.MathJax(), prettyurls = (get(ENV, "CI", nothing) == "true")),
-    modules = [SPRFitting],
+    format = Documenter.HTML(prettyurls = (get(ENV, "CI", nothing) == "true")),
+    modules = [SPRFittingPaper2023],
     doctest = false,
     clean = true,
     pages = Any[
-        "Home" => "index.md",
-        "API" => "SPRFitting_api.md"
-    ]
+        "Home" => "index.md" #,
+        # "API" => "SPRFittingPaper2023_api.md"
+    ],
+    warnonly = [:missing_docs]
 )
 
 # deploydocs(
-#    repo = "github.com/isaacsas/SPRFitting.jl.git";
+#    repo = "github.com/isaacsas/SPRFittingPaper2023.jl.git";
 #    push_preview = true
 # )

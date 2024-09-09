@@ -20,7 +20,7 @@ idxend   = parse(Int, ARGS[5])
 
 Pkg.activate(pkgpath)
 
-using SPRFitting, JLD
+using SPRFittingPaper2023, JLD
 
 # save the surrogate slice
 save_surrogate_slice(outfile, load(metadatafile), idxstart, idxend)

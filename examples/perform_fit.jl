@@ -1,4 +1,4 @@
-using SPRFitting
+using SPRFittingPaper2023
 using BlackBoxOptim: best_fitness
 using LinearAlgebra
 using Plots

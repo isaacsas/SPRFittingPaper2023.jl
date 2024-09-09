@@ -1,4 +1,4 @@
-using SPRFitting, JLD
+using SPRFittingPaper2023, JLD
 
 METADATAFILE = "/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates/test_metadata.jld"
 OUTFILEBASENAME = "/Users/isaacsas/data/2022-06-07 - FD11A_Data/surrogates/test_slice"

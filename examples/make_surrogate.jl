@@ -1,4 +1,4 @@
-using SPRFitting
+using SPRFittingPaper2023
 
 # first we set biophysical parameters for the forward simulations
 # that build the surrogate.

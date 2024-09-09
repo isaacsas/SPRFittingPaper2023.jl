@@ -1,4 +1,4 @@
-using SPRFitting, CSV, Test
+using SPRFittingPaper2023, CSV, Test
 
 datadir = joinpath(@__DIR__,"..", "data")
 

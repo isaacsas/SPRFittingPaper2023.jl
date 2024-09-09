@@ -1,5 +1,5 @@
-using SPRFitting, Statistics, StableRNGs, OnlineStats, Test
-using SPRFitting: means, sems
+using SPRFittingPaper2023, Statistics, StableRNGs, OnlineStats, Test
+using SPRFittingPaper2023: means, sems
 rng = StableRNG(12345)
 
 # check calculating mean and variance ok
@@ -20,10 +20,10 @@ xvec = x[2,:] + x[3,:]
 
 # test variance terminator
 biopars = BioPhysParams(; kon = .001, koff=.01, konb=.01, reach=10.0, 
-                          antigenconcen=SPRFitting.DEFAULT_SIM_ANTIGENCONCEN)
+                          antigenconcen=SPRFittingPaper2023.DEFAULT_SIM_ANTIGENCONCEN)
 simpars = SimParams(; tstop_AtoB=150.0, dt=1.0)
 tbo     = TotalBoundOutputter(length(simpars.tsave))
-vt      = SPRFitting.VarianceTerminator(; ssetol=.025, maxsims=4000)
+vt      = SPRFittingPaper2023.VarianceTerminator(; ssetol=.025, maxsims=4000)
 run_spr_sim!(tbo, biopars, simpars, vt)
 function ssem(tbo)
     sqnsims = sqrt(nobs(tbo.bindcnt[1]))

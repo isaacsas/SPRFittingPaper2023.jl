@@ -1,6 +1,23 @@
-# SPRFitting.jl
+# SPRFittingPaper2023.jl
+
+SPRFittingPaper2023.jl provides a library of functions that were used in fitting the particle-based jump process model of [1] to SPR data. The library provides three main components:
+
+1. A forward solver for the particle-based jump process reaction model for
+   bivalent antibody-antigen SPR interactions (in both two and three dimesions).
+2. Functionality for building the surrogate model approximation the
+   particle-based jump process model over a portion of parameter space.
+3. Functionality for fitting the surrogate model to SPR data sets to produce
+   estimates for the biophysical parameters.
+
+For each of these components we provide a tutorial on their use as part of this documentation. Readers interested in our general methodology should consult [1].
 
 ## Running in parallel
 1. Save the metadata for the surrogate via modifying and running `examples/make_surrogate_metadata.jl`.
 2. Modify and run `examples/make_slices.sh` to batch the surrogate data construction for your cluster.
 3. Modify and run `examples/merge_surrogate_slices.jl` to merge the various data files back into the final surrogate.
+
+## Bibliography
+1. A. Huhn, D. Nissley, ..., C. M. Deane, S. A. Isaacson, and O. Dushek,
+   *Analysis of emergent bivalent antibody binding identifies the molecular
+   reach as a critical determinant of SARS-CoV-2 neutralisation potency*, in
+   review, [available on bioRxiv](https://www.biorxiv.org/content/10.1101/2023.09.06.556503v2) (2024).

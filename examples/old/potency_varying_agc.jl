@@ -1,4 +1,4 @@
-using SPRFitting
+using SPRFittingPaper2023
 #using Roots, Interpolations
 using Plots, XLSX
 
@@ -73,7 +73,7 @@ function runpotencysims!(biopars, simpars, antigenconcen, antibodyconcens)
     for (ax,antibodyconcen) in enumerate(antibodyconcens)                
         biopars.antibodyconcen = antibodyconcen            
         run_spr_sim!(outdata, biopars, simpars)
-        freeantigensims[ax,:] = SPRFitting.means(outdata)
+        freeantigensims[ax,:] = SPRFittingPaper2023.means(outdata)
         outdata()   # reset 
     end
     return freeantigensims

@@ -1,6 +1,6 @@
-# SPRFitting.jl API
+# SPRFittingPaper2023.jl API
 ```@meta
-CurrentModule = SPRFitting
+CurrentModule = SPRFittingPaper2023
 ```
 
 ## Biophysical and Simulation Parameters

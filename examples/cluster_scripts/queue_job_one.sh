@@ -1,6 +1,6 @@
 #! /bin/bash
 
-PKGPATH="/project/fpkmc3d/.julia_sai/dev/SPRFitting"
+PKGPATH="/project/fpkmc3d/.julia_sai/dev/SPRFittingPaper2023"
 METADATAFILE="/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_metadata.jld"
 OUTFILEBASENAME="/project/fpkmc3d/surrogates/highandlow_widerkoff/surrogate_slice"
 JULIASCRIPT="${PKGPATH}/examples/make_surrogate_parallel.jl"
