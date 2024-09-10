@@ -25,7 +25,7 @@ with the minimal loss as our final estimates.
 We'll use the full surrogate from [1], which can be downloaded
 [here](https://doi.org/10.6084/m9.figshare.26936854).
 
-We being by defining some variables related to the fitting process:
+We begin by defining some variables related to the fitting process:
 ```julia
 nfits = 100    # how many fits to run and then take the minimum over
 nsims = 250    # number of simulations to average when plotting
@@ -37,7 +37,7 @@ Next we set the location of the surrogate:
 surfile = "PATH_TO_DOWNLOADED_SURROGATE.jld"
 ```
 
-We are now load the surrogate and SPR data:
+We now load the surrogate and SPR data:
 ```julia
 # load the surrogate
 surrogate = Surrogate(surfile)
@@ -80,8 +80,7 @@ Which gives
 
 ![spr_fit](./fitting_data/fit_curves.png)
 
-Here the SPR data is shown in black and the average predicted responses in
-color. Finally, we can save a spreadsheet with our fits and parameter estimates
+Here the SPR data is shown in black, and the average predicted responses from forward simulations using the best fit parameters in color. Finally, we can save a spreadsheet with our fits and parameter estimates
 via
 ```julia
 curvefile = joinpath(OUTDIR, "parameters.xlsx")
@@ -98,7 +97,7 @@ fits, and systematically writes output files for each fit can be downloaded
 sub-folders:
 
 1. *Experiments* contains a set of CSVs corresponding to processed SPR
-   experiments for fitting.
+   experiments that have been prepared for fitting.
 2. *Code* contains a file "readme.md" with instructions on how to use/modify the
    included "ParameterFitting_Example.jl" script to fit a collection of
    experiments.
