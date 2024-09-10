@@ -90,13 +90,25 @@ curvefile = joinpath(OUTDIR, "parameters.xlsx")
 savefit(optsol, aligneddat, surrogate, simpars, curvefile)
 ```
 For this example the file [here](./fitting_data/parameters.xlsx_fit.xlsx) shows
-the resulting spreadsheet. Note that the second sheet within it shows the
+the resulting Excel spreadsheet. Note that the second sheet within it shows the
 parameter estimates.
 
 ## General Workflow 
 A more detailed workflow that processes multiple SPR inputs, includes monovalent
-fits, and systematically writes the output is presented in GIVE_LOCATION.
+fits, and systematically writes output files for each fit can be downloaded
+[here](./fitting_workflow/Fitting%20Examples.zip). This file contains three sub-folders. 
 
+1. [Experiments](./fitting_workflow/Fitting%20Examples/Experiments/) contains a
+   set of CSVs corresponding to processed SPR experiments for fitting.
+2. [Code](./fitting_workflow/Fitting%20Examples/Code/) contains a
+   [readme](./fitting_workflow/Fitting%20Examples/Code/readme.md) file with
+   instructions on how to use/modify the
+   [ParameterFitting_Example.jl](./fitting_workflow/Fitting%20Examples/Code/ParameterFitting_Example.jl)
+   script to fit a collection of experiments.
+3. [Surrogates](./fitting_workflow/Fitting%20Examples/Surrogates/) is where you
+   should place the downloaded surrogate from the manuscript, which is available
+   [here](https://doi.org/10.6084/m9.figshare.26936854) (or whatever surrogate
+   you wish to use).
 
 ## Bibliography
 1. A. Huhn, D. Nissley, ..., C. M. Deane, S. A. Isaacson, and O. Dushek,
