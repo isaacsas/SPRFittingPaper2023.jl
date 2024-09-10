@@ -12,6 +12,7 @@ makedocs(
         "Home" => "index.md",
         "Forward Model" => "forward_simulation.md",
         "Surrogate Construction" => "surrogate_construction.md",
+        "Fitting Data" => "fitting.md",
         "API" => "SPRFitting_api.md"
     ],
     warnonly = [:missing_docs]
