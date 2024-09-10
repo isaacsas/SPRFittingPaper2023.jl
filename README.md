@@ -1,5 +1,6 @@
 # SPRFittingPaper2023 - Tools for fitting bivalent antibody SPR assays
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://isaacsas.github.io/SPRFittingPaper2023.jl/dev/)
+[![DOI](https://zenodo.org/badge/687753865.svg)](https://zenodo.org/doi/10.5281/zenodo.13743460)
 
 Library for estimating kinetic parameters and molecular reach for surface plasmon resonance (SPR) assays via fitting to a spatial, stochastic, particle-based model. Methodology and results are available in the accompanying manuscript [here](https://doi.org/10.1101/2023.09.06.556503 ) (citation info below).
 Please see the [documentation](https://isaacsas.github.io/SPRFittingPaper2023.jl/dev/) for how to 
