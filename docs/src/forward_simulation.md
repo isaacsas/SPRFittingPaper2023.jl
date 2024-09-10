@@ -10,7 +10,7 @@ using Pkg
 Pkg.activate("fwd_sim_env") 
 Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
 Pkg.add("Plots")
-Pkg.add("CSV""
+Pkg.add("CSV")
 ```
 
 ## Running Forward Simulations
@@ -59,8 +59,10 @@ simpars = SimParams(; antigenconcen = biopars.antigenconcen, tstop, dt, N,
 ```
 See the [`SimParams`](@ref) documentation for more on what the various arguments here mean.
 
-Finally, for each antibody concentration we will run one forward simulation and
-plot the ratio of the number of bound antibodies to the number of antigen, scaled by the fitted coefficient of proportionality, `CP`:
+Finally, for each antibody concentration we will run `simpars.nsims` forward
+simulations and plot the ratio of the average number of bound antibodies to the
+number of antigen, scaled by the fitted coefficient of proportionality, `CP`.
+Since we set no value for it, by default `simpars.nsims = 1000` are averaged:
 ```@example fwdsim
 plt = plot(; xlabel = "times (sec)", 
              ylabel = "SPR Response")
@@ -75,15 +77,18 @@ end
 
 plt
 ```
-Note that here we only ran one simulation for each parameter set, and hence
-`means` just returns the `CP` scaled number of antibodies bound to the surface at
+Here `means` finalizes calculating the average number of bound antibodies across
+the 1000 simulations that were run for each antibody concentration. It then
+returns the `CP` scaled average number of antibodies bound to the surface at
 each time in `tsave` divided by the number of antigen in the system (i.e. `N =
-1000` here). If we had wanted to run and average multiple samples we could have
-passed [`run_spr_sim!`](@ref) a terminator such as a
-[`SPRFittingPaper2023.VarianceTerminator`](@ref) or
-[`SPRFittingPaper2023.SimNumberTerminator`](@ref).
+1000` here). See the [`run_spr_sim!`](@ref) docs and the docs for the
+terminators [`SPRFittingPaper2023.VarianceTerminator`](@ref) or
+[`SPRFittingPaper2023.SimNumberTerminator`](@ref) for more information on
+terminating simulations in relation to the number / accuracy of the desired
+averages.
 
-Finally, let's load and plot the corresponding aligned SPR data that we originally estimated these parameters from to confirm the good fit. 
+Finally, let's load and plot the corresponding aligned SPR data that we
+originally estimated these parameters from to confirm the good fit. 
 ```@example fwdsim
 datadir = joinpath(@__DIR__, "..", "..", "data")
 fname = joinpath(datadir, "Data_FC4_10-05-22_Protein07_FD-11A_RBD-13.8_aligned.csv")
