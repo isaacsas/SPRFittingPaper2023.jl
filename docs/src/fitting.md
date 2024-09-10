@@ -1,7 +1,5 @@
 # Fitting to SPR Data
-In this tutorial we will illustrate how to fit the surrogate model to SPR data to estimate $k_{\text{on}}$, $k_{\text{off}}$, $k_{\on,b}
-serial on any computer, and our workflow for building large surrogates on
-clusters (specific to the Grid Engine queuing system based cluster we use).
+In this tutorial we will illustrate how to fit the surrogate model to SPR data to estimate $k_{\text{on}}$, $k_{\text{off}}$, $k_{\text{on,b}}$ and the reach. 
 
 ## Setup
 We begin by installing the packages we need in a clean environment:
