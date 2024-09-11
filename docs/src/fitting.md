@@ -9,6 +9,9 @@ using Pkg
 # create a new environment for the surrogate constructions
 Pkg.activate("fitting_env") 
 Pkg.add(url="https://github.com/isaacsas/SPRFittingPaper2023.jl.git")
+
+# load the library
+using SPRFittingPaper2023
 ```
 
 ## Estimating Best Fit Parameters to an SPR Dataset
