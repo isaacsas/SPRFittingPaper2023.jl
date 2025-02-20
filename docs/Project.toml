@@ -8,6 +8,6 @@ SPRFittingPaper2023 = "f49ade76-f424-4ced-b837-3ff4885edccf"
 [compat]
 CSV = "0.10.14"
 Documenter = "1.0"
-Julia = "1.10"
+julia = "1.10"
 Plots = "1.40.1"
 SPRFittingPaper2023 = "0.1.0"
